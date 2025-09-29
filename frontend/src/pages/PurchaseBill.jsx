@@ -91,13 +91,33 @@ function PurchaseBill() {
     setFilteredMeds([]);
   };
 
-  const calculateAmounts = (item) => {
-    const discountAmount = item.qty * item.rate * (item.disc / 100);
-    const baseAmount = item.qty * item.rate - discountAmount;
-    const gst = baseAmount * (item.gst_rate / 100);
-    const total = baseAmount + gst;
-    return { ...item, discountAmount, baseAmount, gst, total };
+const calculateAmounts = (item) => {
+  // ensure numeric values
+  const qty = Number(item.qty) || 0;
+  const rate = Number(item.rate) || 0;
+  let disc = Number(item.disc) || 0;
+  const gstRate = Number(item.gst_rate) || 0;
+
+  // 🔒 limit discount between 0–100
+  if (disc < 0) disc = 0;
+  if (disc > 100) disc = 100;
+
+  // main calculations
+  const discountAmount = qty * rate * (disc / 100);
+  const baseAmount = qty * rate - discountAmount;
+  const gst = baseAmount * (gstRate / 100);
+  const total = baseAmount + gst;
+
+  // return structured item with 2-decimal precision
+  return {
+    ...item,
+    disc,
+    discountAmount: Number(discountAmount.toFixed(2)),
+    baseAmount: Number(baseAmount.toFixed(2)),
+    gst: Number(gst.toFixed(2)),
+    total: Number(total.toFixed(2)),
   };
+};
 
   const handleItemChange = (index, field, value) => {
     const updated = [...items];
