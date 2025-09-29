@@ -1,0 +1,108 @@
+.sidebar::-webkit-scrollbar {
+  width: 6px;                 /* Chrome, Edge */
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background-color: #bbb;
+  border-radius: 4px;
+}
+
+
+/* Sidebar */
+.sidebar {
+  width: 280px;
+  transform: translateX(0);
+  transition: transform 0.3s ease;
+  z-index: 1050;
+  background-color: #f8f9fa; /* light background */
+  color: #212529;
+  border-right: 1px solid #dee2e6;
+  overflow-y: auto;
+  scrollbar-width: thin;       /* Firefox */
+}
+
+.sidebar h4 {
+  color: #212529;
+}
+
+/* Sidebar hidden */
+.sidebar:not(.open) {
+  transform: translateX(-100%);
+}
+
+/* Sidebar nav */
+.nav .nav-item {
+  margin-bottom: 0.3rem;
+}
+
+.nav .btn-toggle {
+  color: #212529;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background 0.2s;
+  cursor: pointer;
+  border-radius: 0.25rem;
+}
+
+.nav .btn-toggle:hover {
+  background-color: #e2e6ea;
+}
+
+.nav .btn-toggle-nav .nav-link {
+  color: #495057;
+  padding: 0.3rem 1.5rem;
+  display: block;
+  text-decoration: none;
+  transition: all 0.2s;
+  border-radius: 0.25rem;
+}
+
+.nav .btn-toggle-nav .nav-link:hover {
+  background-color: #dae0e5;
+  color: #212529;
+}
+
+.nav .btn-toggle-nav .nav-link.active {
+  background-color: #cfe2ff;
+  color: #0d6efd;
+  font-weight: bold;
+}
+
+/* Main content margin when sidebar open */
+.main-content {
+  transition: margin-left 0.3s ease;
+  margin-left: 0;
+}
+
+.main-content.sidebar-open {
+  margin-left: 280px;
+}
+
+/* Overlay for mobile */
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 100vw;
+  background-color: rgba(0,0,0,0.3);
+  z-index: 1040;
+}
+
+/* Top Navbar */
+.navbar {
+  background-color: #f8f9fa !important;
+  border-bottom: 1px solid #dee2e6;
+}
+
+/* Profile dropdown */
+.dropdown-menu.show {
+  display: block;
+}

@@ -1,0 +1,38 @@
+/* Print Style */
+@media print {
+  body * {
+    visibility: hidden;   /* Hide everything */
+  }
+
+  .invoice-print-area, .invoice-print-area * {
+    visibility: visible;  /* Only show invoice */
+  }
+
+  .invoice-print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;   /* Full page */
+    background: #fff;
+    padding: 20px;
+  }
+
+  /* Remove button from print */
+  .no-print {
+    display: none !important;
+  }
+}
+/* invoice.css */
+.invoice-watermark {
+  position: fixed;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-30deg);
+  font-size: 80px;
+  font-weight: bold;
+  color: rgba(0, 0, 0, 0.08); /* হালকা কালো */
+  z-index: 0;
+  white-space: nowrap;
+  pointer-events: none; /* text select বা click হবে না */
+  user-select: none;
+}
