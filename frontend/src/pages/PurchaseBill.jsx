@@ -37,6 +37,9 @@ function PurchaseBill() {
   const [toastShow, setToastShow] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
 
+  // 🧭 GST options
+  const gstOptions = [0, 5, 12, 18, 28];
+
   useEffect(() => {
     async function loadInitial() {
       try {
@@ -83,7 +86,7 @@ function PurchaseBill() {
       mrp: Number(med.mrp_price) || 0,
       rate: Number(med.purchase_price) || 0,
       disc: 0,
-      gst_rate: Number(med.gst_rate) || 0,
+      gst_rate: 5, // ✅ Default GST set to 5%
     };
 
     setItems((prev) => [...prev, calculateAmounts(newItem)]);
@@ -91,33 +94,29 @@ function PurchaseBill() {
     setFilteredMeds([]);
   };
 
-const calculateAmounts = (item) => {
-  // ensure numeric values
-  const qty = Number(item.qty) || 0;
-  const rate = Number(item.rate) || 0;
-  let disc = Number(item.disc) || 0;
-  const gstRate = Number(item.gst_rate) || 0;
+  const calculateAmounts = (item) => {
+    const qty = Number(item.qty) || 0;
+    const rate = Number(item.rate) || 0;
+    let disc = Number(item.disc) || 0;
+    const gstRate = Number(item.gst_rate) || 0;
 
-  // 🔒 limit discount between 0–100
-  if (disc < 0) disc = 0;
-  if (disc > 100) disc = 100;
+    if (disc < 0) disc = 0;
+    if (disc > 100) disc = 100;
 
-  // main calculations
-  const discountAmount = qty * rate * (disc / 100);
-  const baseAmount = qty * rate - discountAmount;
-  const gst = baseAmount * (gstRate / 100);
-  const total = baseAmount + gst;
+    const discountAmount = qty * rate * (disc / 100);
+    const baseAmount = qty * rate - discountAmount;
+    const gst = baseAmount * (gstRate / 100);
+    const total = baseAmount + gst;
 
-  // return structured item with 2-decimal precision
-  return {
-    ...item,
-    disc,
-    discountAmount: Number(discountAmount.toFixed(2)),
-    baseAmount: Number(baseAmount.toFixed(2)),
-    gst: Number(gst.toFixed(2)),
-    total: Number(total.toFixed(2)),
+    return {
+      ...item,
+      disc,
+      discountAmount: Number(discountAmount.toFixed(2)),
+      baseAmount: Number(baseAmount.toFixed(2)),
+      gst: Number(gst.toFixed(2)),
+      total: Number(total.toFixed(2)),
+    };
   };
-};
 
   const handleItemChange = (index, field, value) => {
     const updated = [...items];
@@ -197,19 +196,6 @@ const calculateAmounts = (item) => {
     setPaidAmount("");
   };
 
-  const getDateOption = (daysAgo) => {
-    const date = new Date();
-    date.setDate(date.getDate() - daysAgo);
-    return date.toISOString().split("T")[0];
-  };
-
-  const dateOptions = [
-    { label: "Today", value: getDateOption(0) },
-    { label: "Yesterday", value: getDateOption(1) },
-    { label: "2 Days Ago", value: getDateOption(2) },
-    { label: "3 Days Ago", value: getDateOption(3) },
-  ];
-
   return (
     <Container fluid className="mt-4">
       <Card className="shadow-lg border-0 rounded-3">
@@ -217,7 +203,7 @@ const calculateAmounts = (item) => {
           <h4 className="fw-bold mb-0">🧾 New Purchase Bill</h4>
         </Card.Header>
         <Card.Body>
-          {/* Supplier & Invoice Info */}
+          {/* 🧮 Supplier Info */}
           <Row className="g-3 mb-4">
             <Col md={3}>
               <Form.Label>Supplier</Form.Label>
@@ -234,13 +220,7 @@ const calculateAmounts = (item) => {
             </Col>
             <Col md={3}>
               <Form.Label>Date</Form.Label>
-              <Form.Select value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)}>
-                {dateOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label} — {opt.value}
-                  </option>
-                ))}
-              </Form.Select>
+              <Form.Control type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
             </Col>
             <Col md={3}>
               <Form.Label>Bill Type</Form.Label>
@@ -251,7 +231,7 @@ const calculateAmounts = (item) => {
             </Col>
           </Row>
 
-          {/* Payment Info */}
+          {/* 💳 Payment Info */}
           <Row className="g-3 mb-4">
             <Col md={3}>
               <Form.Label>Payment Status</Form.Label>
@@ -272,11 +252,7 @@ const calculateAmounts = (item) => {
             </Col>
             <Col md={3}>
               <Form.Label>Paid Amount</Form.Label>
-              <Form.Control
-                type="number"
-                value={paidAmount}
-                onChange={(e) => setPaidAmount(e.target.value)}
-              />
+              <Form.Control type="number" value={paidAmount} onChange={(e) => setPaidAmount(e.target.value)} />
             </Col>
             <Col md={3}>
               <Form.Label>Due Amount</Form.Label>
@@ -284,7 +260,7 @@ const calculateAmounts = (item) => {
             </Col>
           </Row>
 
-          {/* Product Search */}
+          {/* 🧾 Product Search */}
           <Row className="g-2 mb-4 align-items-end">
             <Col md={6} className="position-relative">
               <Form.Label>💊 Search Product</Form.Label>
@@ -294,18 +270,11 @@ const calculateAmounts = (item) => {
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Type product name..."
               />
-              {loadingSearch && (
-                <Spinner animation="border" size="sm" className="position-absolute end-0 top-50 me-3" />
-              )}
+              {loadingSearch && <Spinner animation="border" size="sm" className="position-absolute end-0 top-50 me-3" />}
               {filteredMeds.length > 0 && (
                 <ListGroup className="position-absolute w-100" style={{ zIndex: 1000, maxHeight: "220px", overflowY: "auto" }}>
                   {filteredMeds.map((m) => (
-                    <ListGroup.Item
-                      key={m.id}
-                      action
-                      onClick={() => handleSelect(m)}
-                      className="d-flex justify-content-between align-items-center"
-                    >
+                    <ListGroup.Item key={m.id} action onClick={() => handleSelect(m)} className="d-flex justify-content-between align-items-center">
                       <span>{m.name}</span>
                       <span className="text-success fw-semibold">₹{m.purchase_price ?? 0}</span>
                     </ListGroup.Item>
@@ -315,7 +284,7 @@ const calculateAmounts = (item) => {
             </Col>
           </Row>
 
-          {/* Items Table */}
+          {/* 📦 Items Table */}
           {items.length > 0 && (
             <>
               <Table bordered responsive hover>
@@ -347,7 +316,19 @@ const calculateAmounts = (item) => {
                       <td>{it.mrp.toFixed(2)}</td>
                       <td><Form.Control type="number" value={it.rate} onChange={(e) => handleItemChange(i, "rate", e.target.value)} /></td>
                       <td><Form.Control type="number" value={it.disc} onChange={(e) => handleItemChange(i, "disc", e.target.value)} /></td>
-                      <td>{it.gst_rate}%</td>
+
+                      {/* ✅ GST Dropdown (default 5%) */}
+                      <td>
+                        <Form.Select
+                          value={it.gst_rate}
+                          onChange={(e) => handleItemChange(i, "gst_rate", e.target.value)}
+                        >
+                          {gstOptions.map((g) => (
+                            <option key={g} value={g}>{g}%</option>
+                          ))}
+                        </Form.Select>
+                      </td>
+
                       <td className="fw-bold text-end">₹{it.total.toFixed(2)}</td>
                       <td><Button size="sm" variant="outline-danger" onClick={() => removeItem(i)}>❌</Button></td>
                     </tr>
@@ -355,6 +336,7 @@ const calculateAmounts = (item) => {
                 </tbody>
               </Table>
 
+              {/* 🧾 Totals */}
               <div className="text-end mt-3 border-top pt-3">
                 <p>Subtotal: ₹{subtotal.toFixed(2)}</p>
                 <p>Discount: ₹{totalDisc.toFixed(2)}</p>
@@ -367,13 +349,13 @@ const calculateAmounts = (item) => {
         </Card.Body>
       </Card>
 
-      {/* Modal */}
+      {/* ⚠ Modal */}
       <Modal show={modalShow} onHide={() => setModalShow(false)} centered>
         <Modal.Header closeButton><Modal.Title>⚠ Notice</Modal.Title></Modal.Header>
         <Modal.Body>{modalMessage}</Modal.Body>
       </Modal>
 
-      {/* Toast */}
+      {/* ✅ Toast */}
       <ToastContainer position="top-end" className="p-3">
         <Toast show={toastShow} bg="success" onClose={() => setToastShow(false)} delay={3000} autohide>
           <Toast.Body className="text-white fw-semibold">{toastMessage}</Toast.Body>
