@@ -14,22 +14,25 @@ router.get("/summary", async (req, res) => {
     // ---- Total Customers ----
     const [custRows] = await db.query(`SELECT COUNT(*) AS totalCustomers FROM customers`);
 
-    // ---- Low Stock ----
+    // ---- Low Stock Medicines (exclude expired) ----
     const [lowStockRows] = await db.query(`
       SELECT 
-        pm.id,
+        pm.id AS product_id,
         pm.name AS product_name,
+        pi.batch_no,
         IFNULL(SUM(pi.quantity - pi.sold_qty), 0) AS available_qty,
-        MIN(pi.expiry_date) AS expiry_date
-      FROM product_master pm
-      LEFT JOIN purchase_items pi ON pm.id = pi.medicine_id
-      GROUP BY pm.id, pm.name
+        pi.expiry_date
+      FROM purchase_items pi
+      INNER JOIN product_master pm ON pm.id = pi.medicine_id
+      WHERE (pi.quantity - pi.sold_qty) > 0
+      AND (pi.expiry_date IS NULL OR pi.expiry_date >= CURDATE())
+      GROUP BY pm.id, pm.name, pi.batch_no, pi.expiry_date
       HAVING available_qty <= 10
-      ORDER BY available_qty ASC
+      ORDER BY available_qty ASC, pi.expiry_date ASC
       LIMIT 10
     `);
 
-    // ---- Expiring Soon ----
+    // ---- Expiring Soon (within 30 days) ----
     const [expRows] = await db.query(`
       SELECT 
         pm.name AS product_name,
@@ -37,12 +40,13 @@ router.get("/summary", async (req, res) => {
       FROM purchase_items pi
       JOIN product_master pm ON pm.id = pi.medicine_id
       WHERE pi.expiry_date IS NOT NULL
-      AND pi.expiry_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+      AND pi.expiry_date >= CURDATE()
+      AND pi.expiry_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)
       ORDER BY pi.expiry_date ASC
       LIMIT 10
     `);
 
-    // ---- Weekly Sales ----
+    // ---- Weekly Sales (last 7 days) ----
     const [weeklyRows] = await db.query(`
       SELECT 
         DATE(created_at) AS date,
@@ -68,13 +72,17 @@ router.get("/summary", async (req, res) => {
       expiringSoon: expRows.length,
       lowStockList: lowStockRows.map((r) => ({
         name: r.product_name,
-        available_qty: Number(r.available_qty).toFixed(2),
-        expiry_date: r.expiry_date
-          ? new Date(r.expiry_date).toLocaleDateString("en-GB", {
-              month: "2-digit",
-              year: "2-digit",
-            })
-          : "—",
+        batch: r.batch_no || "-",
+        available_qty: Number(r.available_qty || 0),
+        expiry_date:
+          r.expiry_date && r.expiry_date !== "0000-00-00"
+            ? (() => {
+                const d = new Date(r.expiry_date);
+                const month = String(d.getMonth() + 1).padStart(2, "0");
+                const year = String(d.getFullYear()).slice(-2);
+                return `${month}/${year}`; // ✅ MM/YY format
+              })()
+            : "—",
       })),
       expiringList: expRows.map((r) => ({
         name: r.product_name,

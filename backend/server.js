@@ -14,7 +14,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Static folder
+// Static folder for uploads
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // ================= ROUTE IMPORTS =================
@@ -36,43 +36,46 @@ const dashboardRoute = require("./routes/dashboard");
 const promoRoute = require("./routes/promo");
 const adminRetailersRoute = require("./routes/adminRetailers");
 const stockRoute = require("./routes/stock");
-const stockReport = require("./routes/stockReport")
-
-
+const currentStockRoute = require("./routes/currentStock"); // ✅ Fixed typo: "requir" → "require"
 
 // ================= REGISTER ROUTES =================
+
+// 🔐 Auth & Admin
 app.use("/api", loginRoute);
 app.use("/api/admin/retailers", adminRetailersRoute);
 
+// 🏭 Product & Inventory
 app.use("/api/product_master", productMasterRoutes);
 app.use("/api/categories", categoriesRoute);
 app.use("/api/manufacturers", manufacturersRoute);
 app.use("/api/units", unitRoutes);
+app.use("/api/stock", stockRoute);
+app.use("/api/current-stock", currentStockRoute); // ✅ Correct variable name
 
+// 🧾 Billing & Transactions
 app.use("/api/business", businessRoute);
 app.use("/api/purchase-bills", purchaseBillsRoute);
 app.use("/api/returns", returnsRoute);
 app.use("/api/suppliers", suppliersRoute);
 app.use("/api/customers", customersRoute);
 app.use("/api/sales", salesRoute);
-app.use("/api/stock", stockRoute);
-app.use("/api/stock-report", require("./routes/stockReport"));
 
+// 📊 Dashboard
+app.use("/api/dashboard", dashboardRoute);
 
+// 🛍 Retailer Zone
 app.use("/api/retailers", retailersRoute);
 app.use("/api/retailer/products", retailerProductsRoute);
 app.use("/api/retailer/orders", retailerOrdersRoute);
 
-// app.use("/api/dashboard", dashboardRoute);
-app.use("/api/dashboard", require("./routes/dashboard"));
-
+// 🎁 Promotions
 app.use("/api/promo", promoRoute);
-
 
 // ================= FILE UPLOAD =================
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, "uploads/"),
-  filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname)),
+  filename: (req, file, cb) =>
+    cb(null, Date.now() + path.extname(file.originalname)),
 });
 const upload = multer({ storage });
 

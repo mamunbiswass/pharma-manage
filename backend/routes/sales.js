@@ -6,7 +6,7 @@ const db = require("../db");
 // ----------------- Helper Functions -----------------
 const pad = (num, size = 4) => num.toString().padStart(size, "0");
 const n = (v, d = 0) => (Number.isFinite(Number(v)) ? Number(v) : d);
-const r2 = (x) => Number((n(x)).toFixed(2));
+const r2 = (x) => Number(n(x).toFixed(2));
 
 // Generate invoice number like: INV-YYYYMMDD-0001
 async function generateInvoiceNo(connOrPool) {
@@ -198,11 +198,13 @@ router.post("/", async (req, res) => {
 });
 
 // ================================
-// ✅ 2️⃣ Get All Sales (GET /api/sales)
+// ✅ 2️⃣ Get All Sales (GET /api/sales) with Filters
 // ================================
-router.get("/", async (_req, res) => {
+router.get("/", async (req, res) => {
   try {
-    const [rows] = await db.query(`
+    const { q = "", status = "", from = "", to = "", limit } = req.query;
+
+    let sql = `
       SELECT 
         s.id,
         s.invoice_number,
@@ -222,14 +224,45 @@ router.get("/", async (_req, res) => {
         s.created_at
       FROM sales s
       LEFT JOIN customers c ON s.customer_id = c.id
-      ORDER BY s.id DESC
-    `);
+      WHERE 1=1
+    `;
+    const params = [];
+
+    // 🔍 Text search
+    if (q) {
+      sql += " AND (s.invoice_number LIKE ? OR c.name LIKE ?)";
+      params.push(`%${q}%`, `%${q}%`);
+    }
+
+    // 💰 Payment status filter
+    if (status) {
+      sql += " AND s.payment_status = ?";
+      params.push(status);
+    }
+
+    // 📅 Date range filter
+    if (from && to) {
+      sql += " AND DATE(s.created_at) BETWEEN ? AND ?";
+      params.push(from, to);
+    } else if (from) {
+      sql += " AND DATE(s.created_at) >= ?";
+      params.push(from);
+    } else if (to) {
+      sql += " AND DATE(s.created_at) <= ?";
+      params.push(to);
+    }
+
+    sql += " ORDER BY s.id DESC";
+    if (limit) sql += " LIMIT " + parseInt(limit);
+
+    const [rows] = await db.query(sql, params);
     res.json(rows);
   } catch (err) {
     console.error("Fetch sales error:", err);
     res.status(500).json({ error: "Failed to fetch sales" });
   }
 });
+
 
 // ================================
 // ✅ 3️⃣ Get Single Sale + Items (GET /api/sales/:id)
