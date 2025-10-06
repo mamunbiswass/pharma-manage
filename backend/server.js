@@ -19,7 +19,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // ================= ROUTE IMPORTS =================
 const productMasterRoutes = require("./routes/productMaster");
-const authRoutes = require("./routes/auth");
+const loginRoute = require("./routes/login");
 const salesRoute = require("./routes/sales");
 const categoriesRoute = require("./routes/categories");
 const suppliersRoute = require("./routes/suppliers");
@@ -36,11 +36,12 @@ const dashboardRoute = require("./routes/dashboard");
 const promoRoute = require("./routes/promo");
 const adminRetailersRoute = require("./routes/adminRetailers");
 const stockRoute = require("./routes/stock");
+const stockReport = require("./routes/stockReport")
 
 
 
 // ================= REGISTER ROUTES =================
-app.use("/api/auth", authRoutes);
+app.use("/api", loginRoute);
 app.use("/api/admin/retailers", adminRetailersRoute);
 
 app.use("/api/product_master", productMasterRoutes);
@@ -55,13 +56,16 @@ app.use("/api/suppliers", suppliersRoute);
 app.use("/api/customers", customersRoute);
 app.use("/api/sales", salesRoute);
 app.use("/api/stock", stockRoute);
+app.use("/api/stock-report", require("./routes/stockReport"));
 
 
 app.use("/api/retailers", retailersRoute);
 app.use("/api/retailer/products", retailerProductsRoute);
 app.use("/api/retailer/orders", retailerOrdersRoute);
 
-app.use("/api/dashboard", dashboardRoute);
+// app.use("/api/dashboard", dashboardRoute);
+app.use("/api/dashboard", require("./routes/dashboard"));
+
 app.use("/api/promo", promoRoute);
 
 

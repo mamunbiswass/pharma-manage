@@ -162,7 +162,7 @@ function AppLayout() {
             {activeMenu === 'sales' && (
               <ul className="btn-toggle-nav list-unstyled fw-normal pb-1 small">
                 <li><NavLink className="nav-link ms-4" to="/sale">New Sale</NavLink></li>
-                <li><NavLink className="nav-link ms-4" to="/sales-list">Sales List</NavLink></li>
+                <li><NavLink className="nav-link ms-4" to="/sales-history">Sales History</NavLink></li>
                 <li><NavLink className="nav-link ms-4" to="/cancelled-sales">Cancelled Sales</NavLink></li>
                 <li><NavLink className="nav-link ms-4" to="/returns">Returns</NavLink></li>
                 
@@ -178,7 +178,7 @@ function AppLayout() {
             </button>
             {activeMenu === 'invreports' && (
               <ul className="btn-toggle-nav list-unstyled fw-normal pb-1 small">
-                <li><NavLink className="nav-link ms-4" to="/current-stock">Current Stock</NavLink></li>
+                <li><NavLink className="nav-link ms-4" to="/stock-report">Current Stock</NavLink></li>
                 <li><NavLink className="nav-link ms-4" to="/expiry-report">Expiry Report</NavLink></li>
                 <li><NavLink className="nav-link ms-4" to="/low-stock">Low Stock Alert</NavLink></li>
               </ul>

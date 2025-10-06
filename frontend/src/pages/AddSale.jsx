@@ -69,7 +69,7 @@ function AddSale() {
     return () => clearTimeout(delay);
   }, [search]);
 
-  // ✅ Select medicine
+  // ✅ Select medicine and add to table
   const handleSelect = async (med) => {
     const exists = items.some((it) => it.medicine_id === med.id);
     if (exists) return showAlert("⚠ This medicine already added!");
@@ -83,8 +83,11 @@ function AddSale() {
       const newItem = {
         medicine_id: med.id,
         name: med.name,
+        product_name: med.name, // ✅ match backend field
         batch_no: b.batch_no,
         expiry_date: b.expiry_date,
+        pack: b.pack || "-", // ✅ added pack field
+        hsn: b.hsn || "", // ✅ added HSN
         qty: 1,
         mrp: Number(b.mrp) || 0,
         rate: Number(b.purchase_rate) || 0,
@@ -100,9 +103,9 @@ function AddSale() {
     }
   };
 
-  // ✅ Calculate totals
+  // ✅ Calculate each row
   const calculate = (item) => {
-    const disc = Math.min(100, Number(item.disc)); // ✅ prevent over 100%
+    const disc = Math.min(100, Number(item.disc) || 0);
     const discount = item.qty * item.rate * (disc / 100);
     const base = item.qty * item.rate - discount;
     const gstHalf = (base * (item.gst_rate / 2)) / 100;
@@ -110,6 +113,7 @@ function AddSale() {
     return { ...item, disc, discount, base, sgst: gstHalf, cgst: gstHalf, total };
   };
 
+  // ✅ Handle row update
   const handleItemChange = (i, field, val) => {
     const updated = [...items];
     updated[i] = calculate({
@@ -148,7 +152,10 @@ function AddSale() {
       total_amount: grandTotal,
       items: items.map((it) => ({
         medicine_id: it.medicine_id,
+        product_name: it.product_name,
         batch_no: it.batch_no,
+        pack: it.pack,
+        hsn: it.hsn,
         expiry_date: it.expiry_date,
         quantity: it.qty,
         price: it.rate,
@@ -289,7 +296,7 @@ function AddSale() {
             </Col>
           </Row>
 
-          {/* Table */}
+          {/* Items Table */}
           {items.length > 0 && (
             <>
               <Table striped bordered hover responsive>
@@ -298,6 +305,8 @@ function AddSale() {
                     <th>SN</th>
                     <th>Product</th>
                     <th>Batch</th>
+                    <th>Pack</th>
+                    <th>HSN</th>
                     <th>Expiry</th>
                     <th>Qty</th>
                     <th>MRP</th>
@@ -312,15 +321,17 @@ function AddSale() {
                   {items.map((it, i) => (
                     <tr key={i}>
                       <td>{i + 1}</td>
-                      <td>{it.name}</td>
+                      <td>{it.product_name}</td>
                       <td>{it.batch_no}</td>
+                      <td>{it.pack || "-"}</td>
+                      <td>{it.hsn || "-"}</td>
                       <td>
                         {it.expiry_date
                           ? new Date(it.expiry_date).toLocaleDateString("en-GB", {
                               month: "2-digit",
                               year: "numeric",
                             })
-                          : ""}
+                          : "-"}
                       </td>
                       <td>
                         <Form.Control
@@ -378,7 +389,13 @@ function AddSale() {
 
       {/* Toast */}
       <ToastContainer position="top-end" className="p-3">
-        <Toast show={toastShow} bg="success" onClose={() => setToastShow(false)} delay={3000} autohide>
+        <Toast
+          show={toastShow}
+          bg="success"
+          onClose={() => setToastShow(false)}
+          delay={3000}
+          autohide
+        >
           <Toast.Body className="text-white fw-semibold">{toastMessage}</Toast.Body>
         </Toast>
       </ToastContainer>

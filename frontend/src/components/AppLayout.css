@@ -106,3 +106,10 @@
 .dropdown-menu.show {
   display: block;
 }
+
+.card {
+  border-radius: 10px;
+}
+.table th, .table td {
+  vertical-align: middle !important;
+}

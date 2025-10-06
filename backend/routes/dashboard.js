@@ -1,32 +1,90 @@
+// routes/dashboard.js
 const express = require("express");
 const router = express.Router();
-const db = require("../db"); // mysql2/promise pool
+const db = require("../db");
 
-// Dashboard Stats
-router.get("/stats", async (req, res) => {
+router.get("/summary", async (req, res) => {
   try {
-    const [[salesToday]] = await db.query(
-      `SELECT IFNULL(SUM(total),0) as total_sales
-       FROM sales
-       WHERE DATE(date) = CURDATE()`
-    );
+    // ---- Today's Sale ----
+    const [todayRows] = await db.query(`
+      SELECT IFNULL(SUM(total), 0) AS todaySale, COUNT(*) AS todayBills
+      FROM sales WHERE DATE(created_at) = CURDATE()
+    `);
 
-    const [[totalCustomers]] = await db.query(
-      `SELECT COUNT(*) as count FROM customers`
-    );
+    // ---- Total Customers ----
+    const [custRows] = await db.query(`SELECT COUNT(*) AS totalCustomers FROM customers`);
 
-    const [[totalProducts]] = await db.query(
-      `SELECT COUNT(*) as count FROM products`
-    );
+    // ---- Low Stock ----
+    const [lowStockRows] = await db.query(`
+      SELECT 
+        pm.id,
+        pm.name AS product_name,
+        IFNULL(SUM(pi.quantity - pi.sold_qty), 0) AS available_qty,
+        MIN(pi.expiry_date) AS expiry_date
+      FROM product_master pm
+      LEFT JOIN purchase_items pi ON pm.id = pi.medicine_id
+      GROUP BY pm.id, pm.name
+      HAVING available_qty <= 10
+      ORDER BY available_qty ASC
+      LIMIT 10
+    `);
 
+    // ---- Expiring Soon ----
+    const [expRows] = await db.query(`
+      SELECT 
+        pm.name AS product_name,
+        DATE_FORMAT(pi.expiry_date, '%m/%y') AS formatted_expiry
+      FROM purchase_items pi
+      JOIN product_master pm ON pm.id = pi.medicine_id
+      WHERE pi.expiry_date IS NOT NULL
+      AND pi.expiry_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+      ORDER BY pi.expiry_date ASC
+      LIMIT 10
+    `);
+
+    // ---- Weekly Sales ----
+    const [weeklyRows] = await db.query(`
+      SELECT 
+        DATE(created_at) AS date,
+        IFNULL(SUM(total), 0) AS total
+      FROM sales
+      WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+      GROUP BY DATE(created_at)
+      ORDER BY DATE(created_at)
+    `);
+
+    // Format weekly data
+    const weeklySales = weeklyRows.map((r) => ({
+      day: new Date(r.date).toLocaleDateString("en-US", { weekday: "short" }),
+      total: Number(r.total || 0),
+    }));
+
+    // ✅ Final Response
     res.json({
-      salesToday: salesToday.total_sales,
-      customers: totalCustomers.count,
-      products: totalProducts.count,
+      todaySale: todayRows[0]?.todaySale || 0,
+      todayBills: todayRows[0]?.todayBills || 0,
+      totalCustomers: custRows[0]?.totalCustomers || 0,
+      lowStock: lowStockRows.length,
+      expiringSoon: expRows.length,
+      lowStockList: lowStockRows.map((r) => ({
+        name: r.product_name,
+        available_qty: Number(r.available_qty).toFixed(2),
+        expiry_date: r.expiry_date
+          ? new Date(r.expiry_date).toLocaleDateString("en-GB", {
+              month: "2-digit",
+              year: "2-digit",
+            })
+          : "—",
+      })),
+      expiringList: expRows.map((r) => ({
+        name: r.product_name,
+        expiry_date: r.formatted_expiry || "—",
+      })),
+      weeklySales,
     });
   } catch (err) {
-    console.error("Dashboard stats error:", err);
-    res.status(500).json({ error: "Database error" });
+    console.error("Dashboard summary error:", err);
+    res.status(500).json({ error: "Failed to load dashboard summary" });
   }
 });
 
