@@ -8,22 +8,23 @@ const db = require("../db");
 // ===============================
 router.get("/", async (req, res) => {
   try {
-    const [rows] = await db.query(`
-      SELECT 
-        pi.medicine_id,
-        pm.name AS product_name,
-        SUM(pi.quantity - pi.sold_qty) AS available_qty,
-        pi.batch_no,
-        pi.expiry_date,
-        pi.purchase_rate,
-        pi.mrp,
-        pi.gst_rate
-      FROM purchase_items pi
-      JOIN product_master pm ON pi.medicine_id = pm.id
-      GROUP BY pi.medicine_id, pi.batch_no, pi.expiry_date
-      HAVING available_qty > 0
-      ORDER BY pm.name ASC
-    `);
+    const [rows] = await db.query(
+      `SELECT 
+        s.batch_no, 
+        s.expiry_date, 
+        s.mrp, 
+        s.purchase_rate, 
+        s.gst_rate, 
+        s.available_qty,
+        p.pack_size AS pack,
+        p.hsn_code AS hsn
+      FROM stock s
+      LEFT JOIN product_master p ON s.medicine_id = p.id
+      WHERE s.medicine_id = ?
+      ORDER BY s.id DESC`,
+      [req.params.id]
+    );
+
     res.json(rows);
   } catch (err) {
     console.error("Fetch stock error:", err);

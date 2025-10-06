@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const db = require("../db"); // mysql2/promise pool
+const db = require("../db");
 const multer = require("multer");
 const fs = require("fs");
 const csv = require("csv-parser");
@@ -8,8 +8,7 @@ const csv = require("csv-parser");
 // ================== Multer Config ==================
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, "uploads/"),
-  filename: (req, file, cb) =>
-    cb(null, Date.now() + "-" + file.originalname),
+  filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname),
 });
 const upload = multer({ storage });
 
@@ -85,27 +84,30 @@ router.get("/", async (req, res) => {
   }
 });
 
-// ================== SEARCH (for AddSale.jsx) ==================
-
-// 🔍 Search product by name
+// ================== 🔍 SEARCH (Used by PurchaseBill.jsx) ==================
 router.get("/search", async (req, res) => {
-  const q = req.query.q || "";
-  if (!q.trim()) return res.json([]);
+  const q = req.query.q ? req.query.q.trim() : "";
+  if (!q) return res.json([]);
 
   try {
     const [rows] = await db.query(
-      `SELECT 
-         id, 
-         name, 
-         pack_size, 
-         mrp_price, 
-         purchase_price, 
-         sale_price, 
-         gst_rate 
-       FROM product_master 
-       WHERE name LIKE ? 
-       ORDER BY name ASC 
-       LIMIT 50`,
+      `
+      SELECT 
+        id,
+        name,
+        hsn_code,
+        pack_size,
+        unit_id,
+        (SELECT name FROM units WHERE id = pm.unit_id LIMIT 1) AS unit,
+        mrp_price,
+        purchase_price,
+        sale_price,
+        gst_rate
+      FROM product_master pm
+      WHERE name LIKE ?
+      ORDER BY name ASC
+      LIMIT 50
+      `,
       [`%${q}%`]
     );
 
@@ -115,7 +117,6 @@ router.get("/search", async (req, res) => {
     res.status(500).json({ error: "Failed to search products" });
   }
 });
-
 
 // ================== GET Single ==================
 router.get("/:id", async (req, res) => {
@@ -187,6 +188,7 @@ router.put("/:id", async (req, res) => {
 
     const fields = [];
     const vals = [];
+
     for (const key of [
       "name",
       "category_id",

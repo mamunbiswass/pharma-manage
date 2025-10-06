@@ -52,7 +52,8 @@ function PurchaseInvoicePrint() {
   if (!invoice)
     return (
       <div className="text-center mt-5">
-        <Spinner animation="border" /> <p>Loading Purchase Invoice...</p>
+        <Spinner animation="border" />
+        <p>Loading Purchase Invoice...</p>
       </div>
     );
 
@@ -60,7 +61,7 @@ function PurchaseInvoicePrint() {
 
   const safeNum = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
-  // ======== Amount in Words ========
+  // ======== Convert Amount to Words ========
   function amountInWords(amount) {
     const ones = [
       "",
@@ -96,6 +97,7 @@ function PurchaseInvoicePrint() {
       "Eighty",
       "Ninety",
     ];
+
     function numToWords(num) {
       if (num === 0) return "";
       if (num < 20) return ones[num];
@@ -134,7 +136,7 @@ function PurchaseInvoicePrint() {
     return words.trim() + " Only";
   }
 
-  // ======== Date formatters ========
+  // ======== Date Formatters ========
   const formatDate = (dateStr) => {
     if (!dateStr) return "";
     const d = new Date(dateStr);
@@ -198,8 +200,8 @@ function PurchaseInvoicePrint() {
           )}
         </Col>
 
-        <Col md={4} className="text-center">          
-          <svg id="invoice-barcode"></svg>         
+        <Col md={4} className="text-center">
+          <svg id="invoice-barcode"></svg>
         </Col>
 
         <Col md={4} className="text-end">
@@ -221,11 +223,13 @@ function PurchaseInvoicePrint() {
 
       <h3 className="fw-bold text-center mb-3">PURCHASE INVOICE</h3>
 
+      {/* ===== Items Table ===== */}
       <Table bordered hover responsive className="align-middle text-center">
         <thead className="table-dark">
           <tr>
             <th>SN</th>
             <th>Product</th>
+            <th>HSN Code</th>
             <th>Batch</th>
             <th>Exp</th>
             <th>Qty</th>
@@ -242,7 +246,8 @@ function PurchaseInvoicePrint() {
             <tr key={i}>
               <td>{i + 1}</td>
               <td>{it.product_name}</td>
-              <td>{it.batch_no || "-"}</td>
+              <td>{it.hsn_code || "—"}</td> {/* ✅ Show HSN properly */}
+              <td>{it.batch_no || "—"}</td>
               <td>{formatExpiry(it.expiry_date)}</td>
               <td>{safeNum(it.quantity)}</td>
               <td>{safeNum(it.free_qty)}</td>
@@ -256,6 +261,7 @@ function PurchaseInvoicePrint() {
         </tbody>
       </Table>
 
+      {/* ===== GST Summary & Totals ===== */}
       <Row className="mt-4">
         <Col md={8}>
           <h6 className="fw-bold">GST Summary</h6>
@@ -297,10 +303,10 @@ function PurchaseInvoicePrint() {
         </Col>
       </Row>
 
+      {/* ===== Footer ===== */}
       <div className="mt-4 border-top pt-3">
         <p>
-          <strong>In Words:</strong>{" "}
-          {amountInWords(safeNum(bill.total_amount))}
+          <strong>In Words:</strong> {amountInWords(safeNum(bill.total_amount))}
         </p>
         <p className="small">
           Goods once purchased cannot be returned. All disputes subject to local

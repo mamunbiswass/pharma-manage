@@ -1,16 +1,15 @@
-// routes/purchaseBills.js
 const express = require("express");
 const router = express.Router();
-const db = require("../db"); // mysql2/promise pool
+const db = require("../db");
 
-// Helper functions
+// ===== Utility Functions =====
 const round2 = (n) => Number((Number(n) || 0).toFixed(2));
 const num = (v, def = 0) =>
   isFinite(Number(v)) && v !== null && v !== "" ? Number(v) : def;
 const today = () => new Date().toISOString().slice(0, 10);
 
 // ===================================================
-// ✅ Create New Purchase Bill
+// ✅ Create New Purchase Bill (with HSN Code support)
 // ===================================================
 router.post("/", async (req, res) => {
   const conn = await db.getConnection();
@@ -32,7 +31,7 @@ router.post("/", async (req, res) => {
       });
     }
 
-    // 🔹 Calculate totals
+    // 🔹 Calculate Totals
     let subTotal = 0,
       totalGST = 0,
       totalDiscount = 0;
@@ -64,6 +63,7 @@ router.post("/", async (req, res) => {
         gst_rate: gstPct,
         discount: discPct,
         total,
+        hsn_code: it.hsn_code || it.hsn || null, // ✅ Include HSN here
       };
     });
 
@@ -98,13 +98,14 @@ router.post("/", async (req, res) => {
 
     const billId = result.insertId;
 
-    // 🔹 Insert items
+    // 🔹 Insert items (now includes HSN Code)
     const itemQuery = `
       INSERT INTO purchase_items
       (purchase_bill_id, medicine_id, product_name, batch_no, expiry_date,
-       quantity, free_qty, unit, purchase_rate, mrp, gst_rate, discount, total)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       quantity, free_qty, unit, purchase_rate, mrp, gst_rate, discount, total, hsn_code)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
+
     for (const it of normalizedItems) {
       await conn.query(itemQuery, [
         billId,
@@ -120,7 +121,16 @@ router.post("/", async (req, res) => {
         it.gst_rate,
         it.discount,
         it.total,
+        it.hsn_code, // ✅ HSN Code saved here
       ]);
+
+      // 🔹 Update product stock
+      await conn.query(
+        `UPDATE product_master 
+         SET stock = IFNULL(stock, 0) + ? 
+         WHERE id = ?`,
+        [it.quantity || 0, it.medicine_id]
+      );
     }
 
     await conn.commit();
@@ -160,7 +170,6 @@ router.get("/", async (_req, res) => {
       ORDER BY p.id DESC
     `);
 
-    // 🧮 convert decimal strings to numbers
     const normalized = rows.map((r) => ({
       ...r,
       total_amount: Number(r.total_amount ?? 0),
@@ -176,7 +185,7 @@ router.get("/", async (_req, res) => {
 });
 
 // ===================================================
-// ✅ Fetch Single Bill + Items
+// ✅ Fetch Single Bill + Items (including HSN)
 // ===================================================
 router.get("/:id", async (req, res) => {
   try {
