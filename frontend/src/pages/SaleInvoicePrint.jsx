@@ -68,6 +68,15 @@ function SaleInvoicePrint() {
     gstSummary[gstClass].cgstAmt += cgstAmt;
   });
 
+  // ✅ Expiry date as MM/YY
+  const formatExpiry = (dateStr) => {
+    if (!dateStr) return "-";
+    const d = new Date(dateStr);
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yy = String(d.getFullYear()).slice(-2);
+    return `${mm}/${yy}`;
+  };
+
   // 🪙 Amount in words
   function amountInWords(amount) {
     const ones = [
@@ -221,7 +230,7 @@ function SaleInvoicePrint() {
                 <td>{it.product_name}</td>
                 <td>{it.batch || "-"}</td>
                 <td>{it.pack || "-"}</td>
-                <td>{formatExp(it.expiry)}</td>
+                 <td>{formatExpiry(it.expiry_date)}</td>
                 <td>{it.hsn || "-"}</td>
                 <td>{qty}</td>
                 <td>{safeNum(it.mrp).toFixed(2)}</td>

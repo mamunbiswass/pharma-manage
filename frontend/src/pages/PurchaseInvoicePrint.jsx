@@ -231,6 +231,7 @@ function PurchaseInvoicePrint() {
             <th>Product</th>
             <th>HSN Code</th>
             <th>Batch</th>
+            <th>Unit</th>
             <th>Exp</th>
             <th>Qty</th>
             <th>Free</th>
@@ -248,6 +249,7 @@ function PurchaseInvoicePrint() {
               <td>{it.product_name}</td>
               <td>{it.hsn_code || "—"}</td> {/* ✅ Show HSN properly */}
               <td>{it.batch_no || "—"}</td>
+              <td>{it.unit || "—"}</td>
               <td>{formatExpiry(it.expiry_date)}</td>
               <td>{safeNum(it.quantity)}</td>
               <td>{safeNum(it.free_qty)}</td>

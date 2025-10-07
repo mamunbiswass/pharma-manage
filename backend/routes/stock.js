@@ -37,28 +37,49 @@ router.get("/", async (req, res) => {
 // ===============================
 router.get("/batches/:medicine_id", async (req, res) => {
   try {
+    const medicineId = req.params.medicine_id;
+
     const [rows] = await db.query(
       `
       SELECT 
-        id, 
-        batch_no, 
-        expiry_date, 
-        purchase_rate, 
-        mrp, 
-        gst_rate, 
-        (quantity - sold_qty) AS available_qty
-      FROM purchase_items
-      WHERE medicine_id = ?
-      AND (quantity - sold_qty) > 0
-      ORDER BY expiry_date ASC
+        pi.batch_no,
+        pi.expiry_date,
+        pi.quantity,
+        pi.purchase_rate,
+        pi.mrp,
+        pm.pack_size AS pack,
+        pm.hsn_code AS hsn,
+        pm.gst_rate
+      FROM purchase_items pi
+      LEFT JOIN product_master pm ON pm.id = pi.medicine_id
+      WHERE pi.medicine_id = ?
+      ORDER BY pi.expiry_date ASC
       `,
-      [req.params.medicine_id]
+      [medicineId]
     );
 
-    res.json(rows);
+    if (!rows.length)
+      return res.json([]);
+
+    // 🧾 Format expiry date
+    const formatted = rows.map((r) => ({
+      batch_no: r.batch_no,
+      expiry_date:
+        r.expiry_date && r.expiry_date !== "0000-00-00"
+          ? r.expiry_date
+          : null,
+      quantity: Number(r.quantity) || 0,
+      purchase_rate: Number(r.purchase_rate) || 0,
+      mrp: Number(r.mrp) || 0,
+      pack: r.pack || "-",
+      hsn: r.hsn || "-",
+      gst_rate: Number(r.gst_rate) || 0,
+    }));
+
+    res.json(formatted);
   } catch (err) {
-    console.error("Batch fetch error:", err);
-    res.status(500).json({ error: "Failed to fetch batch stock" });
+    console.error("🔴 Fetch batch stock error:", err);
+    res.status(500).json({ error: "Failed to fetch stock batches" });
   }
 });
 
