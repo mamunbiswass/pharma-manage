@@ -1,4 +1,3 @@
-// routes/sales.js
 const express = require("express");
 const router = express.Router();
 const db = require("../db");
@@ -8,7 +7,7 @@ const pad = (num, size = 4) => num.toString().padStart(size, "0");
 const n = (v, d = 0) => (Number.isFinite(Number(v)) ? Number(v) : d);
 const r2 = (x) => Number(n(x).toFixed(2));
 
-// Generate invoice number like: INV-YYYYMMDD-0001
+// ✅ Generate Invoice No (INV-YYYYMMDD-0001)
 async function generateInvoiceNo(connOrPool) {
   const dbi = connOrPool || db;
   const todayStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
@@ -19,7 +18,7 @@ async function generateInvoiceNo(connOrPool) {
   return `INV-${todayStr}-${pad(count + 1)}`;
 }
 
-// FIFO Stock Reduction Logic
+// ✅ FIFO Stock Reduction Logic
 async function reduceStockFIFO(conn, items) {
   for (const it of items) {
     let remaining = n(it.quantity, 0);
@@ -49,9 +48,9 @@ async function reduceStockFIFO(conn, items) {
   }
 }
 
-// ================================
+// ======================================================
 // ✅ 1️⃣ Create Sale (POST /api/sales)
-// ================================
+// ======================================================
 router.post("/", async (req, res) => {
   const {
     customer_id,
@@ -85,7 +84,6 @@ router.post("/", async (req, res) => {
       const rate = n(it.price);
       const discPct = n(it.discount || 0);
       const gstRate = n(it.gst_rate);
-
       const lineSub = r2(qty * rate);
       const discAmt = r2(lineSub * (discPct / 100));
       const base = r2(lineSub - discAmt);
@@ -102,7 +100,7 @@ router.post("/", async (req, res) => {
         medicine_id: it.medicine_id,
         product_name: it.name || it.product_name || "",
         batch: it.batch_no || "",
-        pack: it.unit || "",
+        pack: it.pack || it.unit || "-",
         expiry: it.expiry_date || null,
         hsn: it.hsn || "",
         qty,
@@ -187,19 +185,16 @@ router.post("/", async (req, res) => {
     });
   } catch (err) {
     await conn.rollback();
-    console.error("Sale Save Error:", err);
-    res.status(500).json({
-      error: "Failed to save sale",
-      details: err.message,
-    });
+    console.error("❌ Sale Save Error:", err);
+    res.status(500).json({ error: "Failed to save sale", details: err.message });
   } finally {
     conn.release();
   }
 });
 
-// ================================
-// ✅ 2️⃣ Get All Sales (GET /api/sales) with Filters
-// ================================
+// ======================================================
+// ✅ 2️⃣ Get All Sales (GET /api/sales)
+// ======================================================
 router.get("/", async (req, res) => {
   try {
     const { q = "", status = "", from = "", to = "", limit } = req.query;
@@ -228,19 +223,14 @@ router.get("/", async (req, res) => {
     `;
     const params = [];
 
-    // 🔍 Text search
     if (q) {
       sql += " AND (s.invoice_number LIKE ? OR c.name LIKE ?)";
       params.push(`%${q}%`, `%${q}%`);
     }
-
-    // 💰 Payment status filter
     if (status) {
       sql += " AND s.payment_status = ?";
       params.push(status);
     }
-
-    // 📅 Date range filter
     if (from && to) {
       sql += " AND DATE(s.created_at) BETWEEN ? AND ?";
       params.push(from, to);
@@ -253,23 +243,22 @@ router.get("/", async (req, res) => {
     }
 
     sql += " ORDER BY s.id DESC";
-    if (limit) sql += " LIMIT " + parseInt(limit);
+    if (limit) sql += ` LIMIT ${parseInt(limit)}`;
 
     const [rows] = await db.query(sql, params);
     res.json(rows);
   } catch (err) {
-    console.error("Fetch sales error:", err);
+    console.error("❌ Fetch sales error:", err);
     res.status(500).json({ error: "Failed to fetch sales" });
   }
 });
 
-
-// ================================
+// ======================================================
 // ✅ 3️⃣ Get Single Sale + Items (GET /api/sales/:id)
-// ================================
+// ======================================================
 router.get("/:id", async (req, res) => {
   try {
-    const [sale] = await db.query(
+    const [saleRows] = await db.query(
       `SELECT 
          s.*, 
          c.name AS customer_name, c.phone, c.address
@@ -279,21 +268,34 @@ router.get("/:id", async (req, res) => {
       [req.params.id]
     );
 
-    if (!sale.length) {
+    if (!saleRows.length) {
       return res.status(404).json({ error: "Invoice not found" });
     }
 
     const [items] = await db.query(
-      `SELECT *
-         FROM sales_items
-        WHERE sale_id = ?
-        ORDER BY id ASC`,
+      `SELECT 
+         si.id,
+         si.product_name,
+         si.batch,
+         si.pack,
+         si.expiry AS expiry_date,
+         si.hsn,
+         si.qty,
+         si.rate,
+         si.mrp,
+         si.disc,
+         si.sgst,
+         si.cgst,
+         si.amount
+       FROM sales_items si
+       WHERE si.sale_id = ?
+       ORDER BY si.id ASC`,
       [req.params.id]
     );
 
-    res.json({ sale: sale[0], items });
+    res.json({ sale: saleRows[0], items });
   } catch (err) {
-    console.error("Fetch single sale error:", err);
+    console.error("❌ Fetch single sale error:", err);
     res.status(500).json({ error: "Failed to fetch invoice" });
   }
 });

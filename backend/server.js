@@ -36,7 +36,8 @@ const dashboardRoute = require("./routes/dashboard");
 const promoRoute = require("./routes/promo");
 const adminRetailersRoute = require("./routes/adminRetailers");
 const stockRoute = require("./routes/stock");
-const currentStockRoute = require("./routes/currentStock"); // ✅ Fixed typo: "requir" → "require"
+const currentStockRoute = require("./routes/currentStock");
+const expiryStockRoutes = require("./routes/expiryStock");
 
 // ================= REGISTER ROUTES =================
 
@@ -50,7 +51,9 @@ app.use("/api/categories", categoriesRoute);
 app.use("/api/manufacturers", manufacturersRoute);
 app.use("/api/units", unitRoutes);
 app.use("/api/stock", stockRoute);
-app.use("/api/current-stock", currentStockRoute); // ✅ Correct variable name
+app.use("/api/current-stock", currentStockRoute);
+app.use("/api/expiry-stock", expiryStockRoutes);
+
 
 // 🧾 Billing & Transactions
 app.use("/api/business", businessRoute);

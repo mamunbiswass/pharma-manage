@@ -26,6 +26,8 @@ import CustomerList from "./pages/CustomerList";
 import EditProduct from "./pages/EditMedicine";
 import PurchaseInvoicePrint from "./pages/PurchaseInvoicePrint";
 import CurrentStock from "./pages/CurrentStock";
+import ExpiryStock from "./pages/ExpiryStock";
+
 
 
 import RetailerApp from "./retailer/pages/RetailerApp";
@@ -60,7 +62,7 @@ function App() {
         <Route path="sales-history" element={<SalesHistory />} />
         <Route path="sale-invoice/:id" element={<SaleInvoicePrint />} />
         <Route path="current-stock" element={<CurrentStock/>}/>
-
+        <Route path="expiry-stock" element={<ExpiryStock/>}/>
 
         {/* <Route path="invoice/:id" element={<ViewInvoice />} /> */}
         

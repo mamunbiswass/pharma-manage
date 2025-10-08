@@ -179,7 +179,7 @@ function AppLayout() {
             {activeMenu === 'invreports' && (
               <ul className="btn-toggle-nav list-unstyled fw-normal pb-1 small">
                 <li><NavLink className="nav-link ms-4" to="/current-stock">Current Stock</NavLink></li>
-                <li><NavLink className="nav-link ms-4" to="/expiry-report">Expiry Report</NavLink></li>
+                <li><NavLink className="nav-link ms-4" to="/expiry-stock">Expiry Report</NavLink></li>
                 <li><NavLink className="nav-link ms-4" to="/low-stock">Low Stock Alert</NavLink></li>
               </ul>
             )}
