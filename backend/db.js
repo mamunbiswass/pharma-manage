@@ -5,7 +5,7 @@ const pool = mysql.createPool({
   host: "localhost",
   user: "root",
   password: "",
-  database: "pharmacy_db",
+  database: "pharmacy",
   waitForConnections: true,
   connectionLimit: 10,   // কতগুলো একসাথে connection allow করবে
   queueLimit: 0          // unlimited queue

@@ -3,9 +3,9 @@ const express = require("express");
 const router = express.Router();
 const db = require("../db");
 
-// ----------------------------
-// 🧾 1️⃣ Save New Sale (Invoice + Items)
-// ----------------------------
+/* ======================================
+ 🧾 1️⃣ SAVE NEW SALE (Invoice + Items)
+====================================== */
 router.post("/", async (req, res) => {
   const connection = await db.getConnection();
   try {
@@ -18,6 +18,8 @@ router.post("/", async (req, res) => {
       paid_amount,
       due_amount,
       total_amount,
+      discount = 0,
+      discount_type = "flat",
       items,
     } = req.body;
 
@@ -39,8 +41,8 @@ router.post("/", async (req, res) => {
     // 🔹 Insert into sales table
     const [result] = await connection.query(
       `INSERT INTO sales 
-       (invoice_number, customer_id, date, bill_type, payment_status, payment_mode, paid_amount, due_amount, total, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+       (invoice_number, customer_id, date, bill_type, payment_status, payment_mode, discount, discount_type, paid_amount, due_amount, total, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
       [
         invoiceNumber,
         customer_id,
@@ -48,6 +50,8 @@ router.post("/", async (req, res) => {
         bill_type,
         payment_status,
         payment_mode,
+        discount,
+        discount_type,
         paid_amount,
         due_amount,
         total_amount,
@@ -56,7 +60,7 @@ router.post("/", async (req, res) => {
 
     const saleId = result.insertId;
 
-    // 🔹 Insert sale items (loop)
+    // 🔹 Insert sale items
     for (const it of items) {
       await connection.query(
         `INSERT INTO sales_items 
@@ -75,11 +79,11 @@ router.post("/", async (req, res) => {
           it.mrp_price,
           it.gst_rate,
           it.discount,
-          it.quantity * it.price, // base amount (without gst/disc)
+          it.quantity * it.price,
         ]
       );
 
-      // 🔹 Update stock (reduce from purchase_items)
+      // 🔹 Update stock
       await connection.query(
         `UPDATE purchase_items 
          SET sold_qty = sold_qty + ? 
@@ -99,19 +103,56 @@ router.post("/", async (req, res) => {
   }
 });
 
-
-// ----------------------------
-// 🧾 2️⃣ Fetch All Sales (List)
-// ----------------------------
+/* ======================================
+ 🧾 2️⃣ FETCH ALL SALES (with Filters)
+====================================== */
 router.get("/", async (req, res) => {
   try {
-    const [rows] = await db.query(`
-      SELECT s.id, s.invoice_number, s.date, c.name AS customer_name,
-             s.total, s.paid_amount, s.due_amount, s.payment_status
+    const { q, status, from, to } = req.query;
+
+    let query = `
+      SELECT 
+        s.id, 
+        s.invoice_number, 
+        s.date,
+        s.created_at,
+        s.bill_type,
+        s.payment_mode,
+        c.name AS customer_name,
+        s.total, 
+        s.discount,
+        s.discount_type,
+        s.paid_amount, 
+        s.due_amount, 
+        s.payment_status
       FROM sales s
       LEFT JOIN customers c ON s.customer_id = c.id
-      ORDER BY s.id DESC
-    `);
+      WHERE 1
+    `;
+
+    const params = [];
+
+    // 🔍 Search (invoice or customer name)
+    if (q) {
+      query += ` AND (s.invoice_number LIKE ? OR c.name LIKE ?)`;
+      params.push(`%${q}%`, `%${q}%`);
+    }
+
+    // 💳 Payment Status filter
+    if (status) {
+      query += ` AND s.payment_status = ?`;
+      params.push(status);
+    }
+
+    // 📅 Date range filter
+    if (from && to) {
+      query += ` AND DATE(s.date) BETWEEN ? AND ?`;
+      params.push(from, to);
+    }
+
+    query += ` ORDER BY s.id DESC`;
+
+    const [rows] = await db.query(query, params);
     res.json(rows);
   } catch (err) {
     console.error("❌ Fetch sales error:", err);
@@ -119,15 +160,13 @@ router.get("/", async (req, res) => {
   }
 });
 
-
-// ----------------------------
-// 🧾 3️⃣ Fetch Single Sale (for Invoice)
-// ----------------------------
+/* ======================================
+ 🧾 3️⃣ FETCH SINGLE SALE (for Invoice)
+====================================== */
 router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
-    // 🔹 Fetch sale main info
     const [saleData] = await db.query(
       `
       SELECT 
@@ -145,7 +184,6 @@ router.get("/:id", async (req, res) => {
     if (!saleData.length)
       return res.status(404).json({ error: "Sale not found" });
 
-    // 🔹 Fetch sale items
     const [items] = await db.query(
       `
       SELECT 
@@ -178,10 +216,9 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-
-// ----------------------------
-// 🧾 4️⃣ Delete a Sale (optional)
-// ----------------------------
+/* ======================================
+ 🧾 4️⃣ DELETE A SALE (Optional)
+====================================== */
 router.delete("/:id", async (req, res) => {
   const { id } = req.params;
   const connection = await db.getConnection();
@@ -189,10 +226,7 @@ router.delete("/:id", async (req, res) => {
   try {
     await connection.beginTransaction();
 
-    // Delete sale items first
     await connection.query(`DELETE FROM sales_items WHERE sale_id = ?`, [id]);
-
-    // Then delete sale record
     await connection.query(`DELETE FROM sales WHERE id = ?`, [id]);
 
     await connection.commit();

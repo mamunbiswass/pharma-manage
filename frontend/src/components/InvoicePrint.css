@@ -36,3 +36,6 @@
   pointer-events: none; /* text select বা click হবে না */
   user-select: none;
 }
+.customer_info p,.business_info p, .sub_total p {
+    margin: 0;
+}

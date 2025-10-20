@@ -42,7 +42,11 @@ function SaleInvoicePrint() {
     );
 
   const { sale, items } = invoice;
-  const safeNum = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+  // const safeNum = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+  const safeNum = (v) => {
+    const num = parseFloat(v);
+    return isNaN(num) ? 0 : num;
+  };
 
   // ===== Format Helpers =====
   const formatDate = (dateStr) => {
@@ -134,8 +138,9 @@ function SaleInvoicePrint() {
 
   console.log("✅ Generated QR Data:", qrData); // for debugging
 
-  // ===== GST Summary =====
+  // ===== GST Summary & Subtotal Calculation =====
   const gstSummary = {};
+  let subtotal = 0;
   items.forEach((it) => {
     const gst = safeNum(it.gst);
     const gstHalf = gst / 2;
@@ -143,23 +148,46 @@ function SaleInvoicePrint() {
     const rate = safeNum(it.rate);
     const disc = safeNum(it.disc);
     const base = qty * rate - (qty * rate * disc) / 100;
+    subtotal += base;
     const sgstAmt = (base * gstHalf) / 100;
     const cgstAmt = (base * gstHalf) / 100;
     const key = `${gst}%`;
-
-    if (!gstSummary[key])
-      gstSummary[key] = { taxable: 0, sgst: 0, cgst: 0 };
-
+    if (!gstSummary[key]) gstSummary[key] = { taxable: 0, sgst: 0, cgst: 0 };
     gstSummary[key].taxable += base;
     gstSummary[key].sgst += sgstAmt;
     gstSummary[key].cgst += cgstAmt;
   });
 
+// ===== Fix discount & totals =====
+const invoiceDiscount = safeNum(sale.discount || 0); // overall discount (flat amount or percent)
+const totalGst = Object.values(gstSummary).reduce(
+  (sum, g) => sum + safeNum(g.sgst) + safeNum(g.cgst),
+  0
+);
+
+// ✅ যদি discount শতাংশ (যেমন 5%) আকারে থাকে, তাহলে subtotal থেকে হিসাব করো
+let discountAmount = 0;
+if (invoiceDiscount > 0) {
+  // যদি backend থেকে discount_type আসে, সেই অনুযায়ী গণনা করো (flat or percent)
+  if (sale.discount_type === "percent") {
+    discountAmount = (subtotal * invoiceDiscount) / 100;
+  } else {
+    discountAmount = invoiceDiscount;
+  }
+}
+
+// ✅ grand total calculation
+const grandTotal = subtotal - discountAmount + totalGst;
+
+
+// যদি backend total না দেয়, frontend থেকে ঠিক করে
+if (!sale.total || isNaN(sale.total)) sale.total = grandTotal;
+
+
   return (
     <Card className="mt-4 p-4 invoice-print-area">
       {/* ===== Header ===== */}
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <h4 className="fw-bold">🧾 Invoice #{sale.invoice_number}</h4>
+      <div className="text-end mb-3">
         <Button className="no-print" variant="success" onClick={() => window.print()}>
           🖨 Print / Save
         </Button>
@@ -167,7 +195,7 @@ function SaleInvoicePrint() {
 
       {/* ===== Business + QR + Customer Info ===== */}
       <Row className="mb-4 align-items-center">
-        <Col md={5}>
+        <Col md={5} className="business_info">
           {!!settings.show_logo && settings.logo && (
             <Image
               src={`http://localhost:5000/uploads/logo/${settings.logo}`}
@@ -185,14 +213,14 @@ function SaleInvoicePrint() {
         <Col md={2} className="text-center">
           {!!settings.show_qr && (
             <>
-              <h6 className="fw-bold">Scan & Pay</h6>
+              <h6 className="fw-bold mb-0">Scan & Pay</h6>
               <QRCodeCanvas value={qrData} size={150} includeMargin />
-              <p className="small text-muted mt-1">Pay via UPI</p>
+              {/* <p className="small text-muted mt-1">Pay via UPI</p> */}
             </>
           )}
         </Col>
 
-        <Col md={5} className="text-end">
+        <Col md={5} className="text-end customer_info">
           <h5 className="fw-bold">Customer Info</h5>
           <p><strong>Name:</strong> {sale.customer_name}</p>
           <p><strong>Phone:</strong> {sale.phone || "—"}</p>
@@ -201,9 +229,10 @@ function SaleInvoicePrint() {
             <strong>Date:</strong> {formatDate(sale.created_at)}{" "}
             <strong>Time:</strong> {new Date(sale.created_at).toLocaleTimeString()}
           </p>
+          <h5 className="fw-bold">🧾 Invoice #{sale.invoice_number}</h5>
         </Col>
       </Row>
-
+      <h3 className="fw-bold text-center mb-3">SALE INVOICE</h3>
       {/* ===== Item Table ===== */}
       <Table bordered hover responsive className="align-middle text-center">
         <thead className="table-dark">
@@ -326,14 +355,15 @@ function SaleInvoicePrint() {
           </Table>
         </Col>
 
-        <Col md={4} className="text-end">
+        <Col md={4} className="text-end sub_total">
           <div className="border p-3">
-            <p>Subtotal: ₹{safeNum(sale.subtotal).toFixed(2)}</p>
-            <p>Discount: ₹{safeNum(sale.discount).toFixed(2)}</p>
+            <p>Subtotal: ₹{subtotal.toFixed(2)}</p>
+            <p>Discount: ₹{discountAmount.toFixed(2)}</p>
+            <p>GST: ₹{totalGst.toFixed(2)}</p>
             <p>Paid: ₹{safeNum(sale.paid_amount).toFixed(2)}</p>
             <p>Due: ₹{safeNum(sale.due_amount).toFixed(2)}</p>
             <h5 className="fw-bold text-success">
-              Grand Total: ₹{safeNum(sale.total).toFixed(2)}
+              Grand Total: ₹{grandTotal.toFixed(2)}
             </h5>
           </div>
         </Col>
