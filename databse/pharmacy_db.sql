@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Oct 20, 2025 at 01:34 PM
+-- Generation Time: Oct 20, 2025 at 05:50 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -34,7 +34,6 @@ CREATE TABLE `business_info` (
   `phone` varchar(50) DEFAULT NULL,
   `email` varchar(100) DEFAULT NULL,
   `tax_number` varchar(100) DEFAULT NULL,
-  `logo` varchar(255) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -43,8 +42,8 @@ CREATE TABLE `business_info` (
 -- Dumping data for table `business_info`
 --
 
-INSERT INTO `business_info` (`id`, `name`, `address`, `phone`, `email`, `tax_number`, `logo`, `created_at`, `updated_at`) VALUES
-(1, 'Bapi Hardware', 'Hariharpara, Berhampore Murshidabad', '9647087858', 'biswasallarakha350@gmail.com', 'WB/MSD/BIO-NBIO/W/702643', '1760368749063.png', '2025-08-22 03:06:17', '2025-10-19 15:33:22');
+INSERT INTO `business_info` (`id`, `name`, `address`, `phone`, `email`, `tax_number`, `created_at`, `updated_at`) VALUES
+(1, 'Biswas Medicine', 'Madanpur, Daulatabad, Murshidabad', '9153601182', 'biswasallarakha350@gmail.com', 'WB/MSD/BIO-NBIO/W/702643', '2025-08-22 03:06:17', '2025-10-20 15:40:11');
 
 -- --------------------------------------------------------
 
@@ -8657,7 +8656,7 @@ INSERT INTO `suppliers` (`id`, `name`, `contact`, `email`, `address`, `created_a
 (40, 'Owaj Khan', NULL, 'mamunbiswass@gmail.com', 'VILL- DHANAIPUR, P.O- MADANPUR, P.S- DAULATABAD, DIST MURSHIDABAD', '2025-09-22 05:30:27', '9865326511', 'asdasdas45456645', 'KLH2536545253'),
 (42, 'Mamun Biswas', NULL, 'nillakash24@gmail.com', 'Mamun House', '2025-09-22 15:15:09', '9681265732', '', ''),
 (43, 'Mamun Biswas', NULL, 'nillakash24@gmail.com', 'Mamun House', '2025-09-22 15:15:25', '9681265732', '', ''),
-(44, 'SASTASUNDAR HEALTHBUDDY LTD', NULL, '', 'SALEPUR, SOUTH 24 PGS, WEST BENGAL', '2025-09-27 13:41:30', '6292002002', '19AAHCM0651P1Z0', '');
+(44, 'SASTASUNDAR HEALTHBUDDY LTD', NULL, 'arifin122554@gmail.com', 'SALEPUR, SOUTH 24 PGS, WEST BENGAL', '2025-09-27 13:41:30', '6292002002', '19AAHCM0651P1Z0', '');
 
 -- --------------------------------------------------------
 

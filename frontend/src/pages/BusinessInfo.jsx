@@ -1,6 +1,15 @@
 import React, { useEffect, useState } from "react";
 import API from "../api/axios";
-import { Container, Card, Form, Row, Col, Button, Image } from "react-bootstrap";
+import {
+  Container,
+  Card,
+  Form,
+  Row,
+  Col,
+  Button,
+  Toast,
+  ToastContainer,
+} from "react-bootstrap";
 
 function BusinessInfo() {
   const [form, setForm] = useState({
@@ -9,58 +18,57 @@ function BusinessInfo() {
     phone: "",
     email: "",
     tax_number: "",
-    logo: ""
   });
 
-  const [file, setFile] = useState(null);
+  const [toast, setToast] = useState({
+    show: false,
+    message: "",
+    bg: "success",
+  });
 
+  // 🔹 Load Business Info on Page Load
   useEffect(() => {
     API.get("/business")
-      .then(res => {
+      .then((res) => {
         if (res.data) setForm(res.data);
       })
-      .catch(err => console.error(err));
+      .catch((err) => console.error("❌ Failed to load business info:", err));
   }, []);
 
+  // 🔹 Handle Input Change
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm({ ...form, [name]: value });
   };
 
-  const handleFileChange = (e) => {
-    setFile(e.target.files[0]);
-  };
-
+  // 🔹 Handle Submit
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const formData = new FormData();
-      formData.append("name", form.name);
-      formData.append("address", form.address);
-      formData.append("phone", form.phone);
-      formData.append("email", form.email);
-      formData.append("tax_number", form.tax_number);
-      if (file) formData.append("logo", file);
-      else formData.append("logo", form.logo);
-
-      await API.post("/business", formData, {
-        headers: { "Content-Type": "multipart/form-data" }
-      });
-      alert("✅ Business Information Saved!");
+      await API.post("/business", form);
+      showToast("✅ Business Information Saved Successfully!", "success");
     } catch (err) {
-      console.error(err);
-      alert("❌ Error saving business info");
+      console.error("❌ Error saving business info:", err);
+      showToast("❌ Failed to Save Business Information!", "danger");
     }
+  };
+
+  // 🔹 Toast Handler
+  const showToast = (message, bg = "success") => {
+    setToast({ show: true, message, bg });
+    setTimeout(() => setToast({ ...toast, show: false }), 3500);
   };
 
   return (
     <Container fluid className="mt-4">
-      <Card className="shadow-sm">
+      <Card className="shadow-sm border-0">
         <Card.Header className="bg-secondary text-white">
-          <h5 className="mb-0">Business Information</h5>
+          <h5 className="mb-0 fw-bold">🏢 Business Information</h5>
         </Card.Header>
+
         <Card.Body>
           <Form onSubmit={handleSubmit}>
+            {/* ===== Business Name ===== */}
             <Form.Group className="mb-3">
               <Form.Label>Business Name</Form.Label>
               <Form.Control
@@ -68,10 +76,12 @@ function BusinessInfo() {
                 name="name"
                 value={form.name}
                 onChange={handleChange}
+                placeholder="Enter your business name"
                 required
               />
             </Form.Group>
 
+            {/* ===== Address ===== */}
             <Form.Group className="mb-3">
               <Form.Label>Address</Form.Label>
               <Form.Control
@@ -79,10 +89,12 @@ function BusinessInfo() {
                 name="address"
                 value={form.address}
                 onChange={handleChange}
+                placeholder="Enter address"
                 rows={2}
               />
             </Form.Group>
 
+            {/* ===== Phone, Email, Tax ===== */}
             <Row className="mb-3">
               <Col md={4}>
                 <Form.Group>
@@ -92,9 +104,11 @@ function BusinessInfo() {
                     name="phone"
                     value={form.phone}
                     onChange={handleChange}
+                    placeholder="Enter phone number"
                   />
                 </Form.Group>
               </Col>
+
               <Col md={4}>
                 <Form.Group>
                   <Form.Label>Email</Form.Label>
@@ -103,44 +117,49 @@ function BusinessInfo() {
                     name="email"
                     value={form.email}
                     onChange={handleChange}
+                    placeholder="Enter email address"
                   />
                 </Form.Group>
               </Col>
+
               <Col md={4}>
                 <Form.Group>
-                  <Form.Label>Tax Number</Form.Label>
+                  <Form.Label>GST / Tax Number</Form.Label>
                   <Form.Control
                     type="text"
                     name="tax_number"
                     value={form.tax_number}
                     onChange={handleChange}
+                    placeholder="Enter GST / Tax Number"
                   />
                 </Form.Group>
               </Col>
             </Row>
 
-            <Form.Group className="mb-3">
-              <Form.Label>Upload Logo</Form.Label>
-              <Form.Control type="file" accept="image/*" onChange={handleFileChange} />
-              <div className="mt-2">
-                {file ? (
-                  <Image src={URL.createObjectURL(file)} alt="Preview Logo" width={120} height={80} thumbnail />
-                ) : form.logo ? (
-                  <Image
-                    src={`http://localhost:5000/uploads/logo/${form.logo}`}
-                    alt="Business Logo"
-                    height={80}
-                    width={120}
-                    thumbnail
-                  />
-                ) : null}
-              </div>
-            </Form.Group>
-
-            <Button type="submit" variant="success">Save</Button>
+            {/* ===== Save Button ===== */}
+            <div className="text-end">
+              <Button type="submit" variant="success" size="lg">
+                💾 Save Information
+              </Button>
+            </div>
           </Form>
         </Card.Body>
       </Card>
+
+      {/* ===== Toast Notification ===== */}
+      <ToastContainer position="top-end" className="p-3">
+        <Toast
+          show={toast.show}
+          bg={toast.bg}
+          onClose={() => setToast({ ...toast, show: false })}
+          delay={3500}
+          autohide
+        >
+          <Toast.Body className="text-white fw-semibold">
+            {toast.message}
+          </Toast.Body>
+        </Toast>
+      </ToastContainer>
     </Container>
   );
 }
