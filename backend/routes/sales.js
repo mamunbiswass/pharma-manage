@@ -1,251 +1,117 @@
+// routes/sales.js
 const express = require("express");
 const router = express.Router();
 const db = require("../db");
 
-// ----------------- Helper Functions -----------------
-const pad = (num, size = 4) => num.toString().padStart(size, "0");
-const n = (v, d = 0) => (Number.isFinite(Number(v)) ? Number(v) : d);
-const r2 = (x) => Number(n(x).toFixed(2));
-
-// ✅ Generate Invoice No (INV-YYYYMMDD-0001)
-async function generateInvoiceNo(connOrPool) {
-  const dbi = connOrPool || db;
-  const todayStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-  const [rows] = await dbi.query(
-    "SELECT COUNT(*) AS count FROM sales WHERE DATE(created_at) = CURDATE()"
-  );
-  const count = rows?.[0]?.count || 0;
-  return `INV-${todayStr}-${pad(count + 1)}`;
-}
-
-// ✅ FIFO Stock Reduction Logic
-async function reduceStockFIFO(conn, items) {
-  for (const it of items) {
-    let remaining = n(it.quantity, 0);
-    if (remaining <= 0) continue;
-
-    const [batches] = await conn.query(
-      `SELECT id, quantity, sold_qty
-         FROM purchase_items
-        WHERE medicine_id = ? AND (quantity - sold_qty) > 0
-        ORDER BY expiry_date ASC, id ASC`,
-      [it.medicine_id]
-    );
-
-    for (const b of batches) {
-      const available = n(b.quantity) - n(b.sold_qty);
-      if (available <= 0) continue;
-      const useQty = Math.min(available, remaining);
-
-      await conn.query(
-        `UPDATE purchase_items SET sold_qty = sold_qty + ? WHERE id = ?`,
-        [useQty, b.id]
-      );
-
-      remaining -= useQty;
-      if (remaining <= 0) break;
-    }
-  }
-}
-
-// ======================================================
-// ✅ 1️⃣ Create Sale (POST /api/sales)
-// ======================================================
+// ----------------------------
+// 🧾 1️⃣ Save New Sale (Invoice + Items)
+// ----------------------------
 router.post("/", async (req, res) => {
-  const {
-    customer_id,
-    total_amount,
-    items,
-    bill_type = "Cash",
-    payment_mode = "Cash",
-    payment_status = "Paid",
-    paid_amount = 0,
-    round_off = 0,
-  } = req.body;
-
-  if (!customer_id || !Array.isArray(items) || items.length === 0) {
-    return res.status(400).json({ error: "Missing required fields" });
-  }
-
-  const conn = await db.getConnection();
+  const connection = await db.getConnection();
   try {
-    await conn.beginTransaction();
+    const {
+      customer_id,
+      date,
+      bill_type,
+      payment_status,
+      payment_mode,
+      paid_amount,
+      due_amount,
+      total_amount,
+      items,
+    } = req.body;
 
-    const invoice_number = await generateInvoiceNo(conn);
+    if (!items || items.length === 0)
+      return res.status(400).json({ error: "No items provided" });
 
-    let subtotal = 0,
-      discount = 0,
-      sgstAmount = 0,
-      cgstAmount = 0;
+    await connection.beginTransaction();
 
-    // Normalize and calculate totals
-    const normalizedItems = items.map((it) => {
-      const qty = n(it.quantity);
-      const rate = n(it.price);
-      const discPct = n(it.discount || 0);
-      const gstRate = n(it.gst_rate);
-      const lineSub = r2(qty * rate);
-      const discAmt = r2(lineSub * (discPct / 100));
-      const base = r2(lineSub - discAmt);
-      const sgst = r2((base * (gstRate / 2)) / 100);
-      const cgst = r2((base * (gstRate / 2)) / 100);
-      const total = r2(base + sgst + cgst);
+    // 🔹 Generate unique invoice number
+    const [last] = await connection.query(
+      `SELECT id FROM sales ORDER BY id DESC LIMIT 1`
+    );
+    const nextNo = (last[0]?.id || 0) + 1;
+    const invoiceNumber = `INV-${new Date()
+      .toISOString()
+      .slice(0, 10)
+      .replace(/-/g, "")}-${String(nextNo).padStart(4, "0")}`;
 
-      subtotal += lineSub;
-      discount += discAmt;
-      sgstAmount += sgst;
-      cgstAmount += cgst;
-
-      return {
-        medicine_id: it.medicine_id,
-        product_name: it.name || it.product_name || "",
-        batch: it.batch_no || "",
-        pack: it.pack || it.unit || "-",
-        expiry: it.expiry_date || null,
-        hsn: it.hsn || "",
-        qty,
-        rate,
-        mrp: n(it.mrp_price),
-        gst_rate: gstRate,
-        disc: discPct,
-        sgst,
-        cgst,
-        amount: total,
-      };
-    });
-
-    const computedTotal = r2(subtotal - discount + sgstAmount + cgstAmount);
-    const paid =
-      payment_status === "Paid"
-        ? computedTotal
-        : payment_status === "Unpaid"
-        ? 0
-        : n(paid_amount);
-    const due = r2(computedTotal - paid);
-
-    // Insert Sale record
-    const [saleResult] = await conn.query(
-      `INSERT INTO sales
-       (invoice_number, customer_id, bill_type, payment_mode, payment_status,
-        subtotal, discount, sgst, cgst, total, paid_amount, due_amount, round_off)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    // 🔹 Insert into sales table
+    const [result] = await connection.query(
+      `INSERT INTO sales 
+       (invoice_number, customer_id, date, bill_type, payment_status, payment_mode, paid_amount, due_amount, total, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
       [
-        invoice_number,
+        invoiceNumber,
         customer_id,
+        date,
         bill_type,
-        payment_mode,
         payment_status,
-        r2(subtotal),
-        r2(discount),
-        r2(sgstAmount),
-        r2(cgstAmount),
-        r2(computedTotal),
-        r2(paid),
-        r2(due),
-        r2(round_off),
+        payment_mode,
+        paid_amount,
+        due_amount,
+        total_amount,
       ]
     );
 
-    const saleId = saleResult.insertId;
+    const saleId = result.insertId;
 
-    // Insert Sale Items
-    for (const it of normalizedItems) {
-      await conn.query(
-        `INSERT INTO sales_items
-         (sale_id, medicine_id, product_name, batch, pack, expiry, hsn,
-          qty, rate, mrp, disc, sgst, cgst, amount)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    // 🔹 Insert sale items (loop)
+    for (const it of items) {
+      await connection.query(
+        `INSERT INTO sales_items 
+         (sale_id, medicine_id, product_name, hsn, batch, expiry_date, unit, qty, rate, mrp, gst, disc, amount)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           saleId,
           it.medicine_id,
           it.product_name,
-          it.batch,
-          it.pack,
-          it.expiry,
           it.hsn,
-          it.qty,
-          it.rate,
-          it.mrp,
-          it.disc,
-          r2(it.gst_rate / 2),
-          r2(it.gst_rate / 2),
-          it.amount,
+          it.batch_no,
+          it.expiry_date || null,
+          it.pack || null,
+          it.quantity,
+          it.price,
+          it.mrp_price,
+          it.gst_rate,
+          it.discount,
+          it.quantity * it.price, // base amount (without gst/disc)
         ]
+      );
+
+      // 🔹 Update stock (reduce from purchase_items)
+      await connection.query(
+        `UPDATE purchase_items 
+         SET sold_qty = sold_qty + ? 
+         WHERE medicine_id = ? AND batch_no = ? LIMIT 1`,
+        [it.quantity, it.medicine_id, it.batch_no]
       );
     }
 
-    await reduceStockFIFO(conn, normalizedItems);
-    await conn.commit();
-
-    res.json({
-      success: true,
-      message: "✅ Sale saved successfully!",
-      saleId,
-      invoice_number,
-    });
+    await connection.commit();
+    res.json({ success: true, sale_id: saleId, invoice_number: invoiceNumber });
   } catch (err) {
-    await conn.rollback();
+    await connection.rollback();
     console.error("❌ Sale Save Error:", err);
-    res.status(500).json({ error: "Failed to save sale", details: err.message });
+    res.status(500).json({ error: "Failed to save sale" });
   } finally {
-    conn.release();
+    connection.release();
   }
 });
 
-// ======================================================
-// ✅ 2️⃣ Get All Sales (GET /api/sales)
-// ======================================================
+
+// ----------------------------
+// 🧾 2️⃣ Fetch All Sales (List)
+// ----------------------------
 router.get("/", async (req, res) => {
   try {
-    const { q = "", status = "", from = "", to = "", limit } = req.query;
-
-    let sql = `
-      SELECT 
-        s.id,
-        s.invoice_number,
-        s.customer_id,
-        c.name AS customer_name,
-        s.bill_type,
-        s.payment_mode,
-        s.payment_status,
-        s.subtotal,
-        s.discount,
-        s.sgst,
-        s.cgst,
-        s.total,
-        s.paid_amount,
-        s.due_amount,
-        s.round_off,
-        s.created_at
+    const [rows] = await db.query(`
+      SELECT s.id, s.invoice_number, s.date, c.name AS customer_name,
+             s.total, s.paid_amount, s.due_amount, s.payment_status
       FROM sales s
       LEFT JOIN customers c ON s.customer_id = c.id
-      WHERE 1=1
-    `;
-    const params = [];
-
-    if (q) {
-      sql += " AND (s.invoice_number LIKE ? OR c.name LIKE ?)";
-      params.push(`%${q}%`, `%${q}%`);
-    }
-    if (status) {
-      sql += " AND s.payment_status = ?";
-      params.push(status);
-    }
-    if (from && to) {
-      sql += " AND DATE(s.created_at) BETWEEN ? AND ?";
-      params.push(from, to);
-    } else if (from) {
-      sql += " AND DATE(s.created_at) >= ?";
-      params.push(from);
-    } else if (to) {
-      sql += " AND DATE(s.created_at) <= ?";
-      params.push(to);
-    }
-
-    sql += " ORDER BY s.id DESC";
-    if (limit) sql += ` LIMIT ${parseInt(limit)}`;
-
-    const [rows] = await db.query(sql, params);
+      ORDER BY s.id DESC
+    `);
     res.json(rows);
   } catch (err) {
     console.error("❌ Fetch sales error:", err);
@@ -253,50 +119,90 @@ router.get("/", async (req, res) => {
   }
 });
 
-// ======================================================
-// ✅ 3️⃣ Get Single Sale + Items (GET /api/sales/:id)
-// ======================================================
+
+// ----------------------------
+// 🧾 3️⃣ Fetch Single Sale (for Invoice)
+// ----------------------------
 router.get("/:id", async (req, res) => {
   try {
-    const [saleRows] = await db.query(
-      `SELECT 
-         s.*, 
-         c.name AS customer_name, c.phone, c.address
-       FROM sales s
-       LEFT JOIN customers c ON s.customer_id = c.id
-       WHERE s.id = ?`,
-      [req.params.id]
+    const { id } = req.params;
+
+    // 🔹 Fetch sale main info
+    const [saleData] = await db.query(
+      `
+      SELECT 
+        s.*, 
+        c.name AS customer_name, 
+        c.phone, 
+        c.address
+      FROM sales s
+      LEFT JOIN customers c ON s.customer_id = c.id
+      WHERE s.id = ?
+      `,
+      [id]
     );
 
-    if (!saleRows.length) {
-      return res.status(404).json({ error: "Invoice not found" });
-    }
+    if (!saleData.length)
+      return res.status(404).json({ error: "Sale not found" });
 
+    // 🔹 Fetch sale items
     const [items] = await db.query(
-      `SELECT 
-         si.id,
-         si.product_name,
-         si.batch,
-         si.pack,
-         si.expiry AS expiry_date,
-         si.hsn,
-         si.qty,
-         si.rate,
-         si.mrp,
-         si.disc,
-         si.sgst,
-         si.cgst,
-         si.amount
-       FROM sales_items si
-       WHERE si.sale_id = ?
-       ORDER BY si.id ASC`,
-      [req.params.id]
+      `
+      SELECT 
+        si.id AS item_id,
+        si.medicine_id,
+        si.product_name,
+        si.batch,
+        si.unit,
+        DATE_FORMAT(si.expiry_date, "%Y-%m-%d") AS expiry_date,
+        si.hsn,
+        si.qty,
+        si.rate,
+        si.mrp,
+        si.gst,
+        si.disc,
+        si.amount
+      FROM sales_items si
+      WHERE si.sale_id = ?
+      `,
+      [id]
     );
 
-    res.json({ sale: saleRows[0], items });
+    res.json({
+      sale: saleData[0],
+      items,
+    });
   } catch (err) {
     console.error("❌ Fetch single sale error:", err);
-    res.status(500).json({ error: "Failed to fetch invoice" });
+    res.status(500).json({ error: "Failed to fetch sale invoice" });
+  }
+});
+
+
+// ----------------------------
+// 🧾 4️⃣ Delete a Sale (optional)
+// ----------------------------
+router.delete("/:id", async (req, res) => {
+  const { id } = req.params;
+  const connection = await db.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    // Delete sale items first
+    await connection.query(`DELETE FROM sales_items WHERE sale_id = ?`, [id]);
+
+    // Then delete sale record
+    await connection.query(`DELETE FROM sales WHERE id = ?`, [id]);
+
+    await connection.commit();
+    res.json({ success: true });
+  } catch (err) {
+    await connection.rollback();
+    console.error("❌ Sale delete error:", err);
+    res.status(500).json({ error: "Failed to delete sale" });
+  } finally {
+    connection.release();
   }
 });
 

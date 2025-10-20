@@ -5,53 +5,38 @@ const db = require("../db");
 
 /**
  * ✅ Current Stock API
- * This route returns the live stock summary for each product
- * based on purchase_items (purchased - sold).
+ * Fetches product-wise stock directly from product_master table
  */
 router.get("/", async (req, res) => {
   try {
     const [rows] = await db.query(`
       SELECT 
-        pm.id AS product_id,
-        pm.name AS product_name,
-        pm.hsn_code,
-        pm.gst_rate,
-        IFNULL(SUM(pi.quantity), 0) AS total_purchased,
-        IFNULL(SUM(pi.sold_qty), 0) AS total_sold,
-        (IFNULL(SUM(pi.quantity), 0) - IFNULL(SUM(pi.sold_qty), 0)) AS available_qty,
-        MIN(pi.batch_no) AS batch_no,
-        MIN(pi.expiry_date) AS expiry_date,
-        ROUND(AVG(pi.purchase_rate), 2) AS avg_purchase_rate,
-        ROUND(AVG(pi.mrp), 2) AS avg_mrp
-      FROM product_master pm
-      LEFT JOIN purchase_items pi ON pm.id = pi.medicine_id
-      GROUP BY pm.id, pm.name, pm.hsn_code, pm.gst_rate
-      HAVING available_qty > 0
-      ORDER BY pm.name ASC
+        id AS product_id,
+        name AS product_name,
+        hsn_code AS hsn,
+        gst_rate AS gst,
+        stock AS qty,
+        purchase_price AS purchase_rate,
+        mrp_price AS mrp,
+        NULL AS batch,
+        NULL AS expiry
+      FROM product_master
+      ORDER BY name ASC
     `);
 
-    // ✅ Format response
-    const stockList = rows.map((r) => ({
+    const formatted = rows.map((r) => ({
       id: r.product_id,
-      name: r.product_name,
-      hsn: r.hsn_code || "-",
-      gst: Number(r.gst_rate || 0),
-      total_purchased: Number(r.total_purchased || 0),
-      total_sold: Number(r.total_sold || 0),
-      qty: Number(r.available_qty || 0),
-      batch: r.batch_no || "-",
-      purchase_rate: Number(r.avg_purchase_rate || 0).toFixed(2),
-      mrp: Number(r.avg_mrp || 0).toFixed(2),
-      expiry:
-        r.expiry_date && r.expiry_date !== "0000-00-00"
-          ? new Date(r.expiry_date).toLocaleDateString("en-GB", {
-              month: "2-digit",
-              year: "2-digit",
-            })
-          : "—",
+      name: r.product_name || "-",
+      hsn: r.hsn || "-",
+      gst: Number(r.gst || 0),
+      qty: Number(r.qty || 0),
+      batch: r.batch || "-",
+      purchase_rate: Number(r.purchase_rate || 0),
+      mrp: Number(r.mrp || 0),
+      expiry: r.expiry || "—",
     }));
 
-    res.json(stockList);
+    res.json(formatted);
   } catch (err) {
     console.error("❌ Current Stock fetch error:", err);
     res.status(500).json({ error: "Failed to fetch current stock" });

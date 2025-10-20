@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Oct 06, 2025 at 10:02 AM
+-- Generation Time: Oct 20, 2025 at 01:34 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -44,7 +44,7 @@ CREATE TABLE `business_info` (
 --
 
 INSERT INTO `business_info` (`id`, `name`, `address`, `phone`, `email`, `tax_number`, `logo`, `created_at`, `updated_at`) VALUES
-(1, 'awsfasfasfasf', 'Madanpur, Daulatabad, Murshidabad', '9153601182', 'biswasallarakha350@gmail.com', 'WB/MSD/BIO-NBIO/W/702643', '1758889940420.png', '2025-08-22 03:06:17', '2025-10-06 04:38:50');
+(1, 'Bapi Hardware', 'Hariharpara, Berhampore Murshidabad', '9647087858', 'biswasallarakha350@gmail.com', 'WB/MSD/BIO-NBIO/W/702643', '1760368749063.png', '2025-08-22 03:06:17', '2025-10-19 15:33:22');
 
 -- --------------------------------------------------------
 
@@ -101,6 +101,30 @@ INSERT INTO `customers` (`id`, `name`, `phone`, `email`, `address`, `gst_no`, `d
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `invoice_settings`
+--
+
+CREATE TABLE `invoice_settings` (
+  `id` int(11) NOT NULL,
+  `show_logo` tinyint(1) DEFAULT 1,
+  `show_qr` tinyint(1) DEFAULT 1,
+  `upi` varchar(100) DEFAULT NULL,
+  `footer_note` varchar(255) DEFAULT NULL,
+  `signature_text` varchar(255) DEFAULT NULL,
+  `logo` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `invoice_settings`
+--
+
+INSERT INTO `invoice_settings` (`id`, `show_logo`, `show_qr`, `upi`, `footer_note`, `signature_text`, `logo`, `created_at`) VALUES
+(1, 0, 1, 'biswasmedicine123@indianbk', 'Thank you for your purchase!', 'For Biswas Medicine', 'logo_1760369004235.jpg', '2025-10-09 15:06:49');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `manufacturers`
 --
 
@@ -143,6 +167,7 @@ INSERT INTO `manufacturers` (`id`, `name`) VALUES
 (44, 'ANAKEM LAB.'),
 (45, 'ANGLO FRENCH'),
 (46, 'ANHOX'),
+(365, 'Anias'),
 (15, 'Apex'),
 (47, 'APEX PHARMA'),
 (48, 'ARISTO PHARMA'),
@@ -2926,7 +2951,7 @@ INSERT INTO `product_master` (`id`, `name`, `category_id`, `manufacturer_id`, `u
 (8431, 'SURFAZ POW 100GM', NULL, 134, NULL, NULL, '3004', 5.00, 75.57, 75.57, 105.80, 0, '2025-09-26 05:22:00'),
 (8432, 'SURFAZ SN CREAM 7GM', NULL, 134, NULL, NULL, '3004', 5.00, 68.79, 68.79, 96.30, 0, '2025-09-26 05:22:00'),
 (8433, 'TOPIFORT-MX LOTION 15ML', NULL, 134, NULL, NULL, '3004', 5.00, 39.60, 39.60, 55.44, 0, '2025-09-26 05:22:00'),
-(8434, 'ALASPAN SYP 30 ML', NULL, 135, NULL, NULL, '3004', 5.00, 50.72, 50.72, 65.90, 0, '2025-09-26 05:22:00'),
+(8434, 'ALASPAN SYP 30 ML', NULL, 135, NULL, NULL, '3004', 5.00, 50.72, 50.72, 65.90, 1, '2025-09-26 05:22:00'),
 (8435, 'DIPSALIC F OINT 20GM', NULL, 135, NULL, NULL, '3004', 5.00, 90.06, 90.06, 117.00, 0, '2025-09-26 05:22:00'),
 (8436, 'ELOCON CREAM 10 GM', NULL, 135, NULL, NULL, '3004', 5.00, 140.00, 140.00, 196.00, 0, '2025-09-26 05:22:00'),
 (8437, 'ELOCON LOTION 5 ML', NULL, 135, NULL, NULL, '3004', 5.00, 82.26, 82.26, 106.87, 0, '2025-09-26 05:22:00'),
@@ -3115,7 +3140,7 @@ INSERT INTO `product_master` (`id`, `name`, `category_id`, `manufacturer_id`, `u
 (8620, 'ZOVIRAX 800 5 TAB', NULL, 148, NULL, NULL, '3004', 5.00, 150.64, 150.64, 210.90, 0, '2025-09-26 05:22:00'),
 (8621, 'AUGMENTIN ES 50ML', NULL, 149, NULL, NULL, '3001', 5.00, 160.14, 160.14, 223.60, 0, '2025-09-26 05:22:00'),
 (8622, 'BETNOVATE S OINT 20GM', NULL, 149, NULL, NULL, '29309040', 5.00, 28.54, 28.54, 39.95, 0, '2025-09-26 05:22:00'),
-(8623, 'CALPOL 500MG 15TAB', NULL, 149, NULL, NULL, '29309040', 5.00, 10.68, 10.68, 14.95, 0, '2025-09-26 05:22:00'),
+(8623, 'CALPOL 500MG 15TAB', NULL, 149, NULL, NULL, '29309040', 5.00, 10.68, 10.68, 14.95, 20, '2025-09-26 05:22:00'),
 (8624, 'CORCIUM PIUS CAP 1*10', NULL, 149, NULL, NULL, '3004', 5.00, 178.64, 178.64, 263.50, 0, '2025-09-26 05:22:00'),
 (8625, 'CROCIN ADVANCE TAB 15S', NULL, 149, NULL, NULL, '3004', 5.00, 10.05, 10.05, 13.77, 0, '2025-09-26 05:22:00'),
 (8626, 'ELTROXIN 125MG 100TAB', NULL, 149, NULL, NULL, '29309040', 5.00, 81.11, 81.11, 113.57, 0, '2025-09-26 05:22:00'),
@@ -3241,7 +3266,7 @@ INSERT INTO `product_master` (`id`, `name`, `category_id`, `manufacturer_id`, `u
 (8746, 'BILAZAP M TAB 10,S', NULL, 154, NULL, NULL, '3004', 5.00, 130.00, 130.00, 182.00, 0, '2025-09-26 05:22:00'),
 (8747, 'BLADMIR 25MG TAB', NULL, 154, NULL, NULL, '3004', 5.00, 321.13, 321.13, 449.60, 0, '2025-09-26 05:22:00'),
 (8748, 'CANDIBIOTIC EAR DROP 5ML', NULL, 154, NULL, NULL, '3004', 5.00, 75.71, 75.71, 106.00, 0, '2025-09-26 05:22:00'),
-(8749, 'CANDID B CREME 10GM', NULL, 154, NULL, NULL, '3004', 5.00, 90.02, 90.02, 126.00, 0, '2025-09-26 05:22:00'),
+(8749, 'CANDID B CREME 10GM', NULL, 154, NULL, NULL, '3004', 5.00, 90.02, 90.02, 126.00, 1, '2025-09-26 05:22:00'),
 (8750, 'CANDID B LOTION 30ML', NULL, 154, NULL, NULL, '3004', 5.00, 164.29, 164.29, 230.00, 0, '2025-09-26 05:22:00'),
 (8751, 'CANDID CL SUPPOSITORIE 3S', NULL, 154, NULL, NULL, '3004', 5.00, 113.57, 113.57, 159.00, 0, '2025-09-26 05:22:00'),
 (8752, 'CANDID CREAM 30GM 30GM', NULL, 154, NULL, NULL, '3004', 5.00, 72.01, 72.01, 100.80, 0, '2025-09-26 05:22:00'),
@@ -4995,7 +5020,7 @@ INSERT INTO `product_master` (`id`, `name`, `category_id`, `manufacturer_id`, `u
 (10496, 'MANFORCE 100 4', NULL, 220, NULL, NULL, '29309040', 5.00, 182.14, 182.14, 255.00, 0, '2025-09-26 05:22:01'),
 (10497, 'MANFORCE 50 MG 9 TAB', NULL, 220, NULL, NULL, '3004', 5.00, 192.86, 192.86, 270.00, 0, '2025-09-26 05:22:01'),
 (10498, 'MANFORCE CONDOMS 3PC', NULL, 220, NULL, NULL, '3004', 5.00, 24.00, 24.00, 30.00, 0, '2025-09-26 05:22:01'),
-(10499, 'MANKIND PLACIDA 10', NULL, 220, NULL, NULL, '29309040', 5.00, 62.78, 62.78, 87.89, 0, '2025-09-26 05:22:01'),
+(10499, 'MANKIND PLACIDA 10', NULL, 220, NULL, NULL, '29309040', 5.00, 62.78, 62.78, 87.89, 10, '2025-09-26 05:22:01'),
 (10500, 'MANKIND,S GUT OK 1PH', NULL, 220, NULL, NULL, '3001', 5.00, 94.60, 94.60, 132.44, 0, '2025-09-26 05:22:01'),
 (10501, 'MASTFAST POW 50GM', NULL, 220, NULL, NULL, '3004', 5.00, 79.03, 79.03, 105.00, 0, '2025-09-26 05:22:01'),
 (10502, 'MENOHELP SYP 300ML', NULL, 220, NULL, NULL, '30049099', 5.00, 178.57, 178.57, 250.00, 0, '2025-09-26 05:22:01'),
@@ -7104,7 +7129,7 @@ INSERT INTO `product_master` (`id`, `name`, `category_id`, `manufacturer_id`, `u
 (12600, 'ALGIDUO SUSP 150ML 150ML', NULL, 333, NULL, NULL, '30042099', 5.00, 110.71, 110.71, 155.00, 0, '2025-09-26 05:22:02'),
 (12601, 'ALMOX 500 15CAP', NULL, 333, NULL, NULL, '29309040', 5.00, 37.96, 37.96, 123.48, 0, '2025-09-26 05:22:02'),
 (12602, 'ALMOX 500MG [YE] 15CAP', NULL, 333, NULL, NULL, '29309040', 5.00, 37.42, 37.42, 123.48, 0, '2025-09-26 05:22:02'),
-(12603, 'ALPRAX 0.25 10 TAB', NULL, 333, NULL, NULL, '3004', 5.00, 25.01, 25.01, 35.00, 0, '2025-09-26 05:22:02'),
+(12603, 'ALPRAX 0.25 10 TAB', 41, 333, 2, '10', '3004', 12.00, 25.01, 25.01, 35.00, 30, '2025-09-26 05:22:02'),
 (12604, 'ALPRAX 0.5 TAB 10S', NULL, 333, NULL, NULL, '3004', 5.00, 52.50, 52.50, 73.50, 0, '2025-09-26 05:22:02'),
 (12605, 'ALPRAX PLUS TAB 10S', NULL, 333, NULL, NULL, '3004', 5.00, 37.64, 37.64, 52.70, 0, '2025-09-26 05:22:02'),
 (12606, 'ALTIPOD 200 TAB 10S', NULL, 333, NULL, NULL, '3004', 5.00, 108.19, 108.19, 142.00, 0, '2025-09-26 05:22:02'),
@@ -8253,7 +8278,8 @@ INSERT INTO `product_master` (`id`, `name`, `category_id`, `manufacturer_id`, `u
 (13746, 'ZYCOLCHIN TAB 10,S', NULL, 363, NULL, NULL, '29309040', 5.00, 26.08, 26.08, 36.51, 0, '2025-09-26 05:22:02'),
 (13747, 'ZYNAC P TAB 10T', NULL, 363, NULL, NULL, '3004', 5.00, 49.93, 49.93, 76.89, 0, '2025-09-26 05:22:02'),
 (13748, 'ZYRUP 10000MG INJ 1COM', NULL, 363, NULL, NULL, '3003', 5.00, 1406.26, 1406.26, 2265.20, 0, '2025-09-26 05:22:02'),
-(13749, 'ZYVEN OD PLUS 50 MG 10,S', NULL, 363, NULL, NULL, '29309040', 5.00, 176.24, 176.24, 246.73, 0, '2025-09-26 05:22:02');
+(13749, 'ZYVEN OD PLUS 50 MG 10,S', NULL, 363, NULL, '20x10', '29309040', 5.00, 176.24, 176.24, 246.73, 0, '2025-09-26 05:22:02'),
+(13752, 'mamuntest', 42, 364, 2, '10 pcs', '546632', 5.00, 125.00, 150.00, 199.00, 1, '2025-10-16 05:22:00');
 
 -- --------------------------------------------------------
 
@@ -8296,7 +8322,21 @@ INSERT INTO `purchase_bills` (`id`, `supplier_id`, `invoice_no`, `invoice_date`,
 (20, 40, '17424224', '2025-09-28', 'Cash', 'Paid', 'Cash', 1092.37, 0.00, 1092.37, 0.00, '2025-09-28 13:23:52'),
 (21, 34, '24224', '2025-09-28', 'Credit', 'Partial', '', 0.00, 242.60, 242.60, 0.00, '2025-09-28 13:39:24'),
 (22, 39, '242422', '2025-09-28', 'Cash', 'Paid', '', 485.19, 0.00, 485.19, 0.00, '2025-09-28 13:44:07'),
-(23, 44, '4225244524', '2025-09-28', 'Cash', 'Partial', 'UPI', 633.00, 1005.54, 1638.54, 0.00, '2025-09-28 13:48:02');
+(23, 44, '4225244524', '2025-09-28', 'Cash', 'Partial', 'UPI', 633.00, 1005.54, 1638.54, 0.00, '2025-09-28 13:48:02'),
+(30, 37, '2424242', '2025-10-06', 'Cash', 'Paid', 'Cash', 763.69, 0.00, 763.69, 0.00, '2025-10-06 15:08:56'),
+(33, 37, '36536363', '2025-10-06', 'Cash', 'Paid', 'Cash', 24.76, 0.00, 24.76, 0.00, '2025-10-06 15:19:10'),
+(34, 43, '32525252', '2025-10-06', 'Cash', 'Paid', 'Cash', 50.22, 0.00, 50.22, 0.00, '2025-10-06 15:24:03'),
+(35, 39, '25436', '2025-10-06', 'Cash', 'Paid', 'Cash', 89.12, 0.00, 89.12, 0.00, '2025-10-06 15:38:02'),
+(36, 43, 'ibnv251', '2025-10-07', 'Cash', 'Paid', 'Cash', 745.09, 0.00, 745.09, 0.00, '2025-10-07 11:43:56'),
+(37, 44, '12543', '2025-10-08', 'Cash', 'Paid', 'Cash', 485.10, 0.00, 485.10, 0.00, '2025-10-08 04:35:28'),
+(38, 44, '8527578578', '2025-10-13', 'Cash', 'Paid', 'Cash', 173.25, 0.00, 173.25, 0.00, '2025-10-13 08:13:03'),
+(39, 43, '587575', '2025-10-14', 'Cash', 'Paid', 'Cash', 1796.16, 0.00, 1796.16, 0.00, '2025-10-14 06:37:35'),
+(40, 40, '44654564', '2025-10-14', 'Cash', 'Paid', 'Cash', 898.08, 0.00, 898.08, 0.00, '2025-10-14 06:50:09'),
+(41, 40, '45454', '2025-10-14', 'Cash', 'Paid', 'Cash', 179.61, 0.00, 179.61, 0.00, '2025-10-14 07:45:49'),
+(42, 43, '556465', '2025-10-16', 'Cash', 'Paid', 'Cash', 34.65, 0.00, 34.65, 0.00, '2025-10-16 04:26:02'),
+(43, 40, '24242424', '2025-10-16', 'Cash', 'Paid', 'Cash', 637.50, 0.00, 637.50, 0.00, '2025-10-16 05:23:21'),
+(44, 37, '45454545', '2025-10-16', 'Cash', 'Paid', 'Cash', 634.08, 0.00, 634.08, 0.00, '2025-10-16 07:33:09'),
+(45, 39, '4544544', '2025-10-18', 'Cash', 'Paid', 'Cash', 123.75, 0.00, 123.75, 0.00, '2025-10-18 07:01:48');
 
 -- --------------------------------------------------------
 
@@ -8309,6 +8349,7 @@ CREATE TABLE `purchase_items` (
   `purchase_bill_id` int(11) NOT NULL,
   `medicine_id` int(11) DEFAULT NULL,
   `product_name` varchar(255) NOT NULL,
+  `hsn_code` varchar(20) DEFAULT NULL,
   `batch_no` varchar(100) DEFAULT NULL,
   `expiry_date` date DEFAULT NULL,
   `quantity` int(11) DEFAULT 0,
@@ -8326,25 +8367,40 @@ CREATE TABLE `purchase_items` (
 -- Dumping data for table `purchase_items`
 --
 
-INSERT INTO `purchase_items` (`id`, `purchase_bill_id`, `medicine_id`, `product_name`, `batch_no`, `expiry_date`, `quantity`, `sold_qty`, `free_qty`, `unit`, `purchase_rate`, `mrp`, `gst_rate`, `discount`, `total`) VALUES
-(1, 7, 13269, 'YETOMOX CV 625 10 TAB', '125468', '2025-09-26', 5, 0.00, 2, NULL, 125.00, 122.90, 5.00, 0.00, 656.25),
-(2, 8, 13350, 'ONECAN 400MG 1S', 'OGL001F', '2027-03-19', 5, 0.00, 0, NULL, 52.00, 66.61, 5.00, 0.00, 273.00),
-(3, 9, 13232, 'PANTOJEM 40MG 15,S', '21211', '2029-11-30', 5, 0.00, 2, NULL, 40.00, 145.00, 5.00, 3.00, 204.00),
-(4, 9, 6670, 'PAN D CAP 10S', '21115', '2025-11-02', 2, 0.00, 0, NULL, 150.00, 254.00, 5.00, 8.00, 291.00),
-(5, 10, 10231, 'LEVOCET TAB 10 TAB', '2GT24923A', NULL, 4, 0.00, 0, NULL, 36.79, 51.50, 5.00, 29.50, 111.11),
-(6, 11, 9988, 'AB-FLO CAP 10S', '5757575', NULL, 1, 0.00, 0, NULL, 145.00, 186.25, 5.00, 0.00, 152.25),
-(7, 12, 12603, 'ALPRAX 0.25 10 TAB', '2E09M002', '2028-03-31', 1, 0.00, 0, NULL, 27.50, 35.00, 5.00, 6.00, 27.23),
-(8, 12, 12288, 'ALZOLAM 0.5 TAB 10S', 'GTG0387A', '2027-12-31', 1, 0.00, 0, NULL, 16.43, 48.00, 5.00, 6.00, 16.26),
-(9, 13, 9998, 'BASUGINE CATRIDGE 3ML', '', NULL, 1, 0.00, 0, NULL, 488.23, 640.80, 5.00, 0.00, 512.64),
-(10, 14, 10231, 'LEVOCET TAB 10 TAB', '326544', '2028-03-01', 5, 0.00, 0, NULL, 36.78, 51.50, 5.00, 3.00, 187.58),
-(11, 15, 10231, 'LEVOCET TAB 10 TAB', '2365456', '2029-04-01', 10, 0.00, 0, NULL, 36.78, 51.50, 5.00, 6.00, 364.12),
-(12, 17, 10231, 'LEVOCET TAB 10 TAB', '4545454', '2029-05-01', 15, 0.00, 0, '', 36.78, 51.50, 5.00, 6.00, 546.19),
-(13, 18, 10231, 'LEVOCET TAB 10 TAB', '1212112', '2029-06-01', 20, 0.00, 0, '', 36.78, 51.50, 5.00, 6.00, 728.24),
-(14, 19, 10231, 'LEVOCET TAB 10 TAB', '326542', '2029-08-01', 20, 0.00, 0, '', 36.78, 51.50, 5.00, 6.00, 728.24),
-(15, 20, 10231, 'LEVOCET TAB 10 TAB', '45544454', '2027-12-01', 30, 0.00, 0, '', 36.78, 51.50, 5.00, 6.00, 1092.37),
-(16, 21, 12603, 'ALPRAX 0.25 10 TAB', '121155445', '2026-05-01', 10, 0.00, 0, '', 25.01, 35.00, 5.00, 8.00, 242.60),
-(17, 22, 12603, 'ALPRAX 0.25 10 TAB', '2332236', '2029-08-01', 20, 0.00, 0, '', 25.01, 35.00, 5.00, 8.00, 485.19),
-(18, 23, 10231, 'LEVOCET TAB 10 TAB', '1212115', '2026-07-01', 45, 0.00, 0, '', 36.78, 51.50, 5.00, 6.00, 1638.54);
+INSERT INTO `purchase_items` (`id`, `purchase_bill_id`, `medicine_id`, `product_name`, `hsn_code`, `batch_no`, `expiry_date`, `quantity`, `sold_qty`, `free_qty`, `unit`, `purchase_rate`, `mrp`, `gst_rate`, `discount`, `total`) VALUES
+(1, 7, 13269, 'YETOMOX CV 625 10 TAB', NULL, '125468', '2025-09-26', 5, 0.00, 2, NULL, 125.00, 122.90, 5.00, 0.00, 656.25),
+(2, 8, 13350, 'ONECAN 400MG 1S', NULL, 'OGL001F', '2027-03-19', 5, 0.00, 0, NULL, 52.00, 66.61, 5.00, 0.00, 273.00),
+(3, 9, 13232, 'PANTOJEM 40MG 15,S', NULL, '21211', '2029-11-30', 5, 0.00, 2, NULL, 40.00, 145.00, 5.00, 3.00, 204.00),
+(4, 9, 6670, 'PAN D CAP 10S', NULL, '21115', '2025-11-02', 2, 0.00, 0, NULL, 150.00, 254.00, 5.00, 8.00, 291.00),
+(5, 10, 10231, 'LEVOCET TAB 10 TAB', NULL, '2GT24923A', NULL, 4, 0.00, 0, NULL, 36.79, 51.50, 5.00, 29.50, 111.11),
+(6, 11, 9988, 'AB-FLO CAP 10S', NULL, '5757575', NULL, 1, 0.00, 0, NULL, 145.00, 186.25, 5.00, 0.00, 152.25),
+(7, 12, 12603, 'ALPRAX 0.25 10 TAB', NULL, '2E09M002', '2028-03-31', 1, 0.00, 0, NULL, 27.50, 35.00, 5.00, 6.00, 27.23),
+(8, 12, 12288, 'ALZOLAM 0.5 TAB 10S', NULL, 'GTG0387A', '2027-12-31', 1, 0.00, 0, NULL, 16.43, 48.00, 5.00, 6.00, 16.26),
+(9, 13, 9998, 'BASUGINE CATRIDGE 3ML', NULL, '', NULL, 1, 0.00, 0, NULL, 488.23, 640.80, 5.00, 0.00, 512.64),
+(10, 14, 10231, 'LEVOCET TAB 10 TAB', NULL, '326544', '2028-03-01', 5, 0.00, 0, NULL, 36.78, 51.50, 5.00, 3.00, 187.58),
+(11, 15, 10231, 'LEVOCET TAB 10 TAB', NULL, '2365456', '2029-04-01', 10, 0.00, 0, NULL, 36.78, 51.50, 5.00, 6.00, 364.12),
+(12, 17, 10231, 'LEVOCET TAB 10 TAB', NULL, '4545454', '2029-05-01', 15, 0.00, 0, '', 36.78, 51.50, 5.00, 6.00, 546.19),
+(13, 18, 10231, 'LEVOCET TAB 10 TAB', NULL, '1212112', '2029-06-01', 20, 0.00, 0, '', 36.78, 51.50, 5.00, 6.00, 728.24),
+(14, 19, 10231, 'LEVOCET TAB 10 TAB', NULL, '326542', '2029-08-01', 20, 0.00, 0, '', 36.78, 51.50, 5.00, 6.00, 728.24),
+(15, 20, 10231, 'LEVOCET TAB 10 TAB', NULL, '45544454', '2027-12-01', 30, 0.00, 0, '', 36.78, 51.50, 5.00, 6.00, 1092.37),
+(16, 21, 12603, 'ALPRAX 0.25 10 TAB', NULL, '121155445', '2026-05-01', 10, 23.00, 0, '', 25.01, 35.00, 5.00, 8.00, 242.60),
+(17, 22, 12603, 'ALPRAX 0.25 10 TAB', NULL, '2332236', '2029-08-01', 20, 0.00, 0, '', 25.01, 35.00, 5.00, 8.00, 485.19),
+(18, 23, 10231, 'LEVOCET TAB 10 TAB', NULL, '1212115', '2026-07-01', 45, 0.00, 0, '', 36.78, 51.50, 5.00, 6.00, 1638.54),
+(19, 30, 12475, 'LEVOSIZ-M TAB 10S', NULL, '545445', '2027-05-01', 10, 0.00, 0, 'Strip', 77.14, 108.00, 5.00, 6.00, 763.69),
+(20, 33, 12603, 'ALPRAX 0.25 10 TAB', NULL, '548585', '2027-04-01', 1, 0.00, 0, 'Strip', 25.01, 35.00, 5.00, 6.00, 24.76),
+(21, 34, 8434, 'ALASPAN SYP 30 ML', '3004', '544545', '2027-05-01', 1, 0.00, 0, 'Box', 50.72, 65.90, 5.00, 6.00, 50.22),
+(22, 35, 8749, 'CANDID B CREME 10GM', '3004', '25456', '2027-05-01', 1, 0.00, 0, 'Strip', 90.02, 126.00, 5.00, 6.00, 89.12),
+(23, 36, 10499, 'MANKIND PLACIDA 10', '29309040', 'ak347', '2025-12-01', 10, 0.00, 0, 'Tablet', 62.78, 87.89, 5.00, 20.00, 533.63),
+(24, 36, 8623, 'CALPOL 500MG 15TAB', '29309040', 'fhjh', '2029-02-01', 20, 0.00, 0, 'Tablet', 10.68, 14.95, 5.00, 6.00, 211.46),
+(25, 37, NULL, 'Mahmudul Cap', '4545454', '253364', '2026-05-01', 14, 0.00, 0, 'Strip', 35.00, 60.00, 5.00, 6.00, 485.10),
+(26, 38, NULL, 'Mahmudul Cap', '4545454', '32564', '2029-05-01', 5, 0.00, 0, 'Strip', 35.00, 60.00, 5.00, 6.00, 173.25),
+(27, 39, 6670, 'PAN D CAP 10S', '3004', '325546', '2026-05-01', 10, 0.00, 0, 'Strip', 181.43, 254.00, 5.00, 6.00, 1796.16),
+(28, 40, 6670, 'PAN D CAP 10S', '3004', '', '2027-06-01', 5, 0.00, 4454465, 'Strip', 181.43, 254.00, 5.00, 6.00, 898.08),
+(29, 41, 6670, 'PAN D CAP 10S', '3004', '2424242', '2027-04-01', 1, 0.00, 0, 'Strip', 181.43, 254.00, 5.00, 6.00, 179.61),
+(30, 42, NULL, 'Mahmudul Cap', '4545454', '235466', '2028-05-01', 1, 0.00, 0, 'Strip', 35.00, 60.00, 5.00, 6.00, 34.65),
+(31, 43, 13752, 'mamuntest', '546632', '5645632', '2025-10-01', 5, 6.00, 0, 'Box', 125.00, 199.00, 5.00, 3.00, 637.50),
+(32, 44, 10499, 'MANKIND PLACIDA 10', '29309040', '4545454', '2026-05-01', 10, 0.00, 0, 'Strip', 62.78, 87.89, 5.00, 4.00, 634.08),
+(33, 45, 13752, 'mamuntest', '546632', '45544', '2026-05-01', 1, 0.00, 0, 'Strip', 125.00, 199.00, 5.00, 6.00, 123.75);
 
 -- --------------------------------------------------------
 
@@ -8493,65 +8549,28 @@ CREATE TABLE `return_items` (
 CREATE TABLE `sales` (
   `id` int(11) NOT NULL,
   `invoice_number` varchar(50) NOT NULL,
-  `customer_id` int(11) NOT NULL,
-  `subtotal` decimal(10,2) NOT NULL,
-  `discount` decimal(10,2) NOT NULL DEFAULT 0.00,
-  `sgst` decimal(10,2) NOT NULL DEFAULT 0.00,
-  `cgst` decimal(10,2) NOT NULL DEFAULT 0.00,
-  `total` decimal(10,2) NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `bill_type` varchar(20) DEFAULT 'Cash',
-  `payment_mode` varchar(20) DEFAULT 'Cash',
-  `payment_status` varchar(20) DEFAULT 'Paid',
+  `customer_id` int(11) DEFAULT NULL,
+  `date` date DEFAULT NULL,
+  `bill_type` varchar(50) DEFAULT 'Cash',
+  `payment_status` varchar(50) DEFAULT 'Paid',
+  `payment_mode` varchar(50) DEFAULT 'Cash',
   `paid_amount` decimal(10,2) DEFAULT 0.00,
   `due_amount` decimal(10,2) DEFAULT 0.00,
-  `round_off` decimal(10,2) DEFAULT 0.00
+  `total` decimal(10,2) DEFAULT 0.00,
+  `created_at` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `sales`
 --
 
-INSERT INTO `sales` (`id`, `invoice_number`, `customer_id`, `subtotal`, `discount`, `sgst`, `cgst`, `total`, `created_at`, `bill_type`, `payment_mode`, `payment_status`, `paid_amount`, `due_amount`, `round_off`) VALUES
-(14, '1758606130509', 8, 266.00, 0.00, 0.00, 0.00, 297.92, '2025-09-23 05:42:10', 'Cash', 'Cash', 'Paid', 0.00, 0.00, 0.00),
-(15, '1758606382773', 7, 564.00, 0.00, 33.84, 33.84, 631.68, '2025-09-23 05:46:22', 'Cash', 'Cash', 'Paid', 0.00, 0.00, 0.00),
-(16, '1758606706047', 7, 296.00, 14.80, 16.87, 16.87, 314.94, '2025-09-23 05:51:46', 'Cash', 'Cash', 'Paid', 0.00, 0.00, 0.00),
-(17, '1758607434198', 6, 266.00, 0.00, 15.96, 15.96, 297.92, '2025-09-23 06:03:54', 'Cash', 'Cash', 'Paid', 0.00, 0.00, 0.00),
-(18, '1758607584667', 1, 30.00, 0.00, 1.80, 1.80, 33.60, '2025-09-23 06:06:24', 'Cash', 'Cash', 'Paid', 0.00, 0.00, 0.00),
-(19, '1758610299992', 7, 358.00, 3.00, 21.30, 21.30, 397.60, '2025-09-23 06:51:40', 'Cash', 'Cash', 'Paid', 0.00, 0.00, 0.00),
-(20, '1758610303919', 7, 358.00, 3.00, 21.30, 21.30, 397.60, '2025-09-23 06:51:43', 'Cash', 'Cash', 'Paid', 0.00, 0.00, 0.00),
-(21, '1758610306599', 7, 358.00, 3.00, 21.30, 21.30, 397.60, '2025-09-23 06:51:46', 'Cash', 'Cash', 'Paid', 0.00, 0.00, 0.00),
-(22, '1758610310719', 7, 358.00, 3.00, 21.30, 21.30, 397.60, '2025-09-23 06:51:50', 'Cash', 'Cash', 'Paid', 0.00, 0.00, 0.00),
-(23, '1758610351265', 6, 266.00, 13.30, 15.16, 15.16, 283.02, '2025-09-23 06:52:31', 'Cash', 'Cash', 'Paid', 0.00, 0.00, 0.00),
-(24, '1758634811969', 7, 358.00, 20.90, 0.00, 0.00, 377.55, '2025-09-23 13:40:12', 'Cash', 'Cash', 'Paid', 0.00, 0.00, 0.00),
-(25, '1758634961973', 7, 328.00, 31.30, 0.00, 0.00, 332.30, '2025-09-23 13:42:41', 'Cash', 'Cash', 'Paid', 0.00, 0.00, 0.00),
-(26, '1758635018639', 7, 266.00, 26.60, 0.00, 0.00, 268.13, '2025-09-23 13:43:38', 'Cash', 'Cash', 'Paid', 0.00, 0.00, 0.00),
-(27, '1758635719419', 7, 266.00, 0.00, 0.00, 0.00, 297.92, '2025-09-23 13:55:19', 'Cash', 'Cash', 'Paid', 0.00, 0.00, 0.00),
-(28, '1758635977899', 8, 298.00, 0.00, 0.00, 0.00, 333.76, '2025-09-23 13:59:37', 'Cash', 'Cash', 'Paid', 0.00, 0.00, 0.00),
-(29, '1758636061469', 6, 266.00, 0.00, 0.00, 0.00, 297.92, '2025-09-23 14:01:01', 'Cash', 'Cash', 'Paid', 0.00, 0.00, 0.00),
-(30, '1758636418768', 1, 328.00, 17.88, 0.00, 0.00, 347.33, '2025-09-23 14:06:58', 'Cash', 'Cash', 'Paid', 0.00, 0.00, 0.00),
-(31, '1758637731326', 1, 328.00, 0.00, 19.68, 19.68, 367.36, '2025-09-23 14:28:51', 'Cash', 'Cash', 'Paid', 0.00, 0.00, 0.00),
-(32, '1758641856302', 6, 30.00, 0.90, 1.75, 1.75, 32.59, '2025-09-23 15:37:36', 'Cash', 'Cash', 'Paid', 0.00, 0.00, 0.00),
-(33, '1758642254465', 1, 25.00, 0.75, 1.46, 1.46, 27.16, '2025-09-23 15:44:14', 'Cash', 'Cash', 'Paid', 0.00, 0.00, 0.00),
-(34, '1758684762533', 8, 589.00, 17.67, 34.28, 34.28, 639.89, '2025-09-24 03:32:42', 'Cash', 'Cash', 'Paid', 0.00, 0.00, 0.00),
-(35, '1758684836032', 1, 85.00, 2.55, 6.69, 6.69, 95.84, '2025-09-24 03:33:56', 'Cash', 'Cash', 'Paid', 0.00, 0.00, 0.00),
-(36, '1758698374267', 7, 649.00, 19.47, 39.52, 39.52, 708.57, '2025-09-24 07:19:34', 'Cash', 'Cash', 'Paid', 0.00, 0.00, 0.00),
-(37, '1758715407197', 9, 649.00, 19.72, 39.50, 39.50, 708.29, '2025-09-24 12:03:27', 'Cash', 'Cash', 'Paid', 0.00, 0.00, 0.00),
-(38, '1758891601416', 7, 725.72, 21.77, 17.60, 17.60, 739.15, '2025-09-26 13:00:01', 'Cash', 'Cash', 'Paid', 0.00, 0.00, 0.00),
-(39, '1758891725771', 8, 127.35, 3.82, 3.09, 3.09, 129.71, '2025-09-26 13:02:05', 'Cash', 'Cash', 'Paid', 0.00, 0.00, 0.00),
-(40, '1758900952700', 6, 237.90, 7.14, 5.77, 5.77, 242.30, '2025-09-26 15:35:52', 'Cash', 'Cash', 'Paid', 0.00, 0.00, 0.00),
-(41, '1758945944241', 9, 2029.34, 60.88, 49.21, 49.21, 2066.88, '2025-09-27 04:05:44', 'Cash', 'Cash', 'Paid', 0.00, 0.00, 0.00),
-(42, 'INV087475', 9, 135.07, 0.00, 3.38, 3.38, 141.82, '2025-09-27 06:38:07', 'Cash', 'Cash', 'Paid', 0.00, 0.00, 0.00),
-(43, 'INV-20250927-0003', 8, 191.68, 0.00, 4.79, 4.79, 201.26, '2025-09-27 13:18:18', 'Cash', 'Cash', 'Paid', 0.00, 0.00, 0.00),
-(44, 'INV-20250927-0004', 7, 36.78, 0.00, 0.92, 0.92, 37.46, '2025-09-27 13:24:28', 'Cash', 'Cash', 'Paid', 0.00, 0.00, 0.00),
-(45, 'INV-20250927-0005', 8, 40.00, 0.00, 1.00, 1.00, 42.00, '2025-09-27 14:11:58', 'Cash', 'Cash', 'Paid', 0.00, 0.00, 0.00),
-(46, 'INV-20250927-0006', 8, 183.95, 0.00, 4.60, 4.60, 187.35, '2025-09-27 14:21:19', 'Cash', 'Cash', 'Paid', 0.00, 0.00, 0.00),
-(47, 'INV-20250927-0007', 6, 43.93, 0.00, 1.10, 1.10, 46.13, '2025-09-27 15:50:29', 'Cash', 'Cash', 'Paid', 0.00, 0.00, 0.00),
-(48, 'INV-20250929-0001', 9, 25.01, 0.00, 0.63, 0.63, 25.21, '2025-09-29 05:06:50', 'Cash', 'Cash', 'Paid', 0.00, 0.00, 0.00),
-(49, 'INV-20251006-0001', 7, 425.01, 0.00, 10.63, 10.63, 432.87, '2025-10-06 04:07:51', 'Cash', 'Cash', 'Paid', 0.00, 0.00, 0.00),
-(50, 'INV-20251006-0002', 6, 25010.00, 0.00, 625.25, 625.25, 25472.69, '2025-10-06 04:37:02', 'Cash', 'Cash', 'Paid', 0.00, 0.00, 0.00),
-(51, 'INV-20251004-0001', 9, 25.01, 0.00, 0.63, 0.63, 25.47, '2025-10-04 04:42:00', 'Cash', 'Cash', 'Paid', 0.00, 0.00, 0.00),
-(52, 'INV-20251006-0003', 1, 125.05, 3.75, 3.03, 3.03, 127.36, '2025-10-06 05:48:09', 'Credit', 'UPI', 'Partial', 0.00, 127.36, 0.00);
+INSERT INTO `sales` (`id`, `invoice_number`, `customer_id`, `date`, `bill_type`, `payment_status`, `payment_mode`, `paid_amount`, `due_amount`, `total`, `created_at`) VALUES
+(1, 'INV-20251018-0001', 8, '2025-10-18', 'Cash', 'Paid', 'Cash', 0.00, 127.31, 127.31, '2025-10-18 10:46:23'),
+(2, 'INV-20251018-0002', 1, '2025-10-18', 'Cash', 'Paid', 'Cash', 0.00, 27.17, 27.17, '2025-10-18 10:47:48'),
+(3, 'INV-20251018-0003', 7, '2025-10-18', 'Cash', 'Paid', 'Cash', 0.00, 271.71, 271.71, '2025-10-18 12:34:24'),
+(4, 'INV-20251018-0004', 7, '2025-10-18', 'Cash', 'Paid', 'Cash', 0.00, 901.71, 901.71, '2025-10-18 12:34:59'),
+(5, 'INV-20251019-0005', 6, '2025-10-19', 'Cash', 'Paid', 'Cash', 0.00, 27.17, 27.17, '2025-10-19 12:58:52'),
+(6, 'INV-20251019-0006', 6, '2025-10-19', 'Cash', 'Paid', 'Cash', 0.00, 28.01, 28.01, '2025-10-19 13:00:18');
 
 -- --------------------------------------------------------
 
@@ -8561,81 +8580,33 @@ INSERT INTO `sales` (`id`, `invoice_number`, `customer_id`, `subtotal`, `discoun
 
 CREATE TABLE `sales_items` (
   `id` int(11) NOT NULL,
-  `sale_id` int(11) DEFAULT NULL,
-  `medicine_id` int(11) DEFAULT NULL,
-  `product_name` varchar(150) DEFAULT NULL,
-  `batch` varchar(50) DEFAULT NULL,
-  `pack` varchar(50) DEFAULT NULL,
-  `expiry` varchar(20) DEFAULT NULL,
+  `sale_id` int(11) NOT NULL,
+  `medicine_id` int(11) NOT NULL,
+  `product_name` varchar(255) DEFAULT NULL,
   `hsn` varchar(50) DEFAULT NULL,
-  `qty` int(11) DEFAULT NULL,
-  `rate` decimal(10,2) DEFAULT NULL,
-  `mrp` decimal(10,2) DEFAULT NULL,
-  `disc` decimal(10,2) DEFAULT NULL,
-  `sgst` decimal(5,2) NOT NULL DEFAULT 0.00,
-  `cgst` decimal(5,2) NOT NULL DEFAULT 0.00,
-  `amount` decimal(10,2) DEFAULT NULL
+  `batch` varchar(100) DEFAULT NULL,
+  `expiry_date` date DEFAULT NULL,
+  `unit` varchar(50) DEFAULT NULL,
+  `qty` decimal(10,2) DEFAULT 0.00,
+  `rate` decimal(10,2) DEFAULT 0.00,
+  `mrp` decimal(10,2) DEFAULT 0.00,
+  `gst` decimal(5,2) DEFAULT 0.00,
+  `disc` decimal(5,2) DEFAULT 0.00,
+  `amount` decimal(10,2) DEFAULT 0.00
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `sales_items`
 --
 
-INSERT INTO `sales_items` (`id`, `sale_id`, `medicine_id`, `product_name`, `batch`, `pack`, `expiry`, `hsn`, `qty`, `rate`, `mrp`, `disc`, `sgst`, `cgst`, `amount`) VALUES
-(1, 15, 3, 'Calpol 650', '565656', '10', '2025-10', '45454', 1, 298.00, 355.00, 0.00, 0.00, 0.00, 333.76),
-(2, 15, 4, 'CANDID POWDER', '45465454', '20', '2025-09', '464454', 1, 266.00, 355.00, 0.00, 0.00, 0.00, 297.92),
-(3, 16, 18, 'Sifat', 'ABC123', '10x10', '2026-05', '300499', 1, 30.00, 35.00, 5.00, 0.00, 0.00, 31.92),
-(4, 16, 4, 'CANDID POWDER', '45465454', '20', '2025-09', '464454', 1, 266.00, 355.00, 5.00, 0.00, 0.00, 283.02),
-(5, 17, 4, 'CANDID POWDER', '45465454', '20', '2025-09', '464454', 1, 266.00, 355.00, 0.00, 0.00, 0.00, 297.92),
-(6, 18, 10, 'Pan D', 'ABC123', '10x10', '2025-10', '300490', 1, 30.00, 35.00, 0.00, 0.00, 0.00, 33.60),
-(7, 23, 4, 'CANDID POWDER', '45465454', '20', '2025-09', '464454', 1, 266.00, 355.00, 5.00, 0.00, 0.00, 283.02),
-(8, 26, 4, 'CANDID POWDER', '45465454', '20', '2025-09', '464454', 1, 266.00, 355.00, 10.00, 0.00, 0.00, 239.40),
-(9, 27, 4, 'CANDID POWDER', '45465454', '20', '2025-09', '464454', 1, 266.00, 355.00, 0.00, 0.00, 0.00, 266.00),
-(10, 28, 3, 'Calpol 650', '565656', '10', '2025-10', '45454', 1, 298.00, 355.00, 0.00, 0.00, 0.00, 298.00),
-(11, 29, 4, 'CANDID POWDER', '45465454', '20', '2025-09', '464454', 1, 266.00, 355.00, 0.00, 0.00, 0.00, 266.00),
-(12, 30, 3, 'Calpol 650', '565656', '10', '2025-10', '45454', 1, 298.00, 355.00, 6.00, 0.00, 0.00, 280.12),
-(13, 30, 10, 'Pan D', 'ABC123', '10x10', '2025-10', '300490', 1, 30.00, 35.00, 0.00, 0.00, 0.00, 30.00),
-(14, 31, 3, 'Calpol 650', '565656', '10', '2025-10', '45454', 1, 298.00, 355.00, 0.00, 6.00, 6.00, 333.76),
-(15, 31, 10, 'Pan D', 'ABC123', '10x10', '2025-10', '300490', 1, 30.00, 35.00, 0.00, 6.00, 6.00, 33.60),
-(16, 32, 10, 'Pan D', 'ABC123', '10x10', '2025-10', '300490', 1, 30.00, 35.00, 3.00, 6.00, 6.00, 32.59),
-(17, 33, 10, 'Pan D', 'ABC123', '10x10', '2025-10', '300490', 1, 25.00, 35.00, 3.00, 6.00, 6.00, 27.16),
-(18, 34, 3, 'Calpol 650', '565656', '10', '2025-10', '45454', 1, 298.00, 355.00, 3.00, 6.00, 6.00, 323.75),
-(19, 34, 10, 'Pan D', 'ABC123', '10x10', '2025-10', '300490', 1, 25.00, 35.00, 3.00, 6.00, 6.00, 27.16),
-(20, 34, 4, 'CANDID POWDER', '45465454', '20', '2025-09', '464454', 1, 266.00, 355.00, 3.00, 6.00, 6.00, 288.98),
-(21, 35, 11, 'Ondem', 'XYZ456', '20x10', '2025-09', '300420', 1, 60.00, 70.00, 3.00, 9.00, 9.00, 68.68),
-(22, 35, 10, 'Pan D', 'ABC123', '10x10', '2025-10', '300490', 1, 25.00, 35.00, 3.00, 6.00, 6.00, 27.16),
-(23, 36, 10, 'Pan D', 'ABC123', '10x10', '2025-10', '300490', 1, 25.00, 35.00, 3.00, 6.00, 6.00, 27.16),
-(24, 36, 3, 'Calpol 650', '565656', '10', '2025-10', '45454', 1, 298.00, 355.00, 3.00, 6.00, 6.00, 323.75),
-(25, 36, 11, 'Ondem', 'XYZ456', '20x10', '2025-09', '300420', 1, 60.00, 70.00, 3.00, 9.00, 9.00, 68.68),
-(26, 36, 4, 'CANDID POWDER', '45465454', '20', '2025-09', '464454', 1, 266.00, 355.00, 3.00, 6.00, 6.00, 288.98),
-(27, 37, 10, 'Pan D', 'ABC123', '10x10', '2025-10', '300490', 1, 25.00, 35.00, 4.00, 6.00, 6.00, 26.88),
-(28, 37, 3, 'Calpol 650', '565656', '10', '2025-10', '45454', 1, 298.00, 355.00, 3.00, 6.00, 6.00, 323.75),
-(29, 37, 4, 'CANDID POWDER', '45465454', '20', '2025-09', '464454', 1, 266.00, 355.00, 3.00, 6.00, 6.00, 288.98),
-(30, 37, 11, 'Ondem', 'XYZ456', '20x10', '2025-09', '300420', 1, 60.00, 70.00, 3.00, 9.00, 9.00, 68.68),
-(31, 38, 6670, 'PAN D CAP 10S', NULL, '', NULL, '3004', 4, 181.43, 254.00, 3.00, 2.50, 2.50, 739.15),
-(32, 39, 8604, 'CALPOL 650 TAB 10S', NULL, '', NULL, '3004', 1, 24.42, 34.18, 3.00, 2.50, 2.50, 24.87),
-(33, 39, 8434, 'ALASPAN SYP 30 ML', NULL, '', NULL, '3004', 1, 50.72, 65.90, 3.00, 2.50, 2.50, 51.66),
-(34, 39, 12601, 'ALMOX 500 15CAP', NULL, '', NULL, '29309040', 1, 37.96, 123.48, 3.00, 2.50, 2.50, 38.66),
-(35, 39, 13232, 'PANTOJEM 40MG 15,S', NULL, '', NULL, '3004', 1, 14.25, 145.00, 3.00, 2.50, 2.50, 14.51),
-(36, 40, 13350, 'ONECAN 400MG 1S', NULL, '', NULL, '3004', 5, 47.58, 66.61, 3.00, 2.50, 2.50, 242.30),
-(37, 41, 12601, 'ALMOX 500 15CAP', NULL, '', NULL, '29309040', 5, 37.96, 123.48, 3.00, 2.50, 2.50, 193.31),
-(38, 41, 6430, 'AL5ZYME CAPSULES 10S', NULL, '', NULL, '3004', 4, 60.07, 84.10, 3.00, 2.50, 2.50, 244.73),
-(39, 41, 6597, 'CLAVAM 625 TAB 10S', NULL, '', NULL, '3004', 5, 148.93, 208.50, 3.00, 2.50, 2.50, 758.43),
-(40, 41, 8476, 'BENZAC AC 2.5 CREAM 15 GM', NULL, '', NULL, '3004', 5, 80.07, 104.00, 3.00, 2.50, 2.50, 407.76),
-(41, 41, 11698, 'AMLOVAS-M 2.0/25 10\'S', NULL, '', NULL, '3004', 6, 75.71, 106.00, 3.00, 2.50, 2.50, 462.66),
-(42, 42, 11357, 'ABSOLUT CAP 10,S', NULL, NULL, NULL, NULL, 1, 135.07, 200.00, 0.00, 2.50, 2.50, 141.82),
-(43, 43, 6390, NULL, NULL, NULL, NULL, NULL, 1, 191.68, 268.35, 0.00, 2.50, 2.50, 201.26),
-(44, 44, 10231, NULL, NULL, NULL, NULL, NULL, 1, 36.78, 51.50, 0.00, 2.50, 2.50, 38.62),
-(45, 45, 13232, NULL, NULL, NULL, NULL, NULL, 1, 40.00, 145.00, 0.00, 2.50, 2.50, 42.00),
-(46, 46, 10231, NULL, NULL, NULL, NULL, NULL, 5, 36.79, 51.50, 0.00, 2.50, 2.50, 193.15),
-(47, 47, 12603, NULL, NULL, NULL, NULL, NULL, 1, 27.50, 35.00, 0.00, 2.50, 2.50, 28.88),
-(48, 47, 12288, NULL, NULL, NULL, NULL, NULL, 1, 16.43, 48.00, 0.00, 2.50, 2.50, 17.25),
-(49, 48, 12603, '', '121155445', NULL, '2026-04-30T18:30:00.', NULL, 1, 25.01, 35.00, 0.00, 2.50, 2.50, 26.27),
-(50, 49, 13232, 'PANTOJEM 40MG 15,S', '21211', '-', '2029-11-29T18:30:00.', NULL, 10, 40.00, 145.00, 0.00, 2.50, 2.50, 420.00),
-(51, 49, 12603, 'ALPRAX 0.25 10 TAB', '121155445', '-', '2026-04-30T18:30:00.', NULL, 1, 25.01, 35.00, 0.00, 2.50, 2.50, 26.27),
-(52, 50, 12603, 'ALPRAX 0.25 10 TAB', '121155445', '-', '2026-04-30T18:30:00.', NULL, 1000, 25.01, 35.00, 0.00, 2.50, 2.50, 26260.50),
-(53, 51, 12603, 'ALPRAX 0.25 10 TAB', '121155445', '-', '2026-04-30T18:30:00.', NULL, 1, 25.01, 35.00, 0.00, 2.50, 2.50, 26.27),
-(54, 52, 12603, 'ALPRAX 0.25 10 TAB', '121155445', '', '2026-04-30T18:30:00.', '', 5, 25.01, 35.00, 3.00, 2.50, 2.50, 127.36);
+INSERT INTO `sales_items` (`id`, `sale_id`, `medicine_id`, `product_name`, `hsn`, `batch`, `expiry_date`, `unit`, `qty`, `rate`, `mrp`, `gst`, `disc`, `amount`) VALUES
+(1, 1, 13752, 'mamuntest', '546632', '5645632', '2025-09-30', '20 pcs', 1.00, 125.00, 199.00, 5.00, 3.00, 125.00),
+(2, 2, 12603, 'ALPRAX 0.25 10 TAB', '3004', '121155445', '2026-04-30', '10', 1.00, 25.01, 35.00, 12.00, 3.00, 25.01),
+(3, 3, 12603, 'ALPRAX 0.25 10 TAB', '3004', '121155445', '2026-04-30', '10', 10.00, 25.01, 35.00, 12.00, 3.00, 250.10),
+(4, 4, 12603, 'ALPRAX 0.25 10 TAB', '3004', '121155445', '2026-04-30', '10', 10.00, 25.01, 35.00, 12.00, 3.00, 250.10),
+(5, 4, 13752, 'mamuntest', '546632', '5645632', '2025-09-30', '10 pcs', 5.00, 125.00, 199.00, 5.00, 4.00, 625.00),
+(6, 5, 12603, 'ALPRAX 0.25 10 TAB', '3004', '121155445', '2026-04-30', '10', 1.00, 25.01, 35.00, 12.00, 3.00, 25.01),
+(7, 6, 12603, 'ALPRAX 0.25 10 TAB', '3004', '121155445', '2026-04-30', '10', 1.00, 25.01, 35.00, 12.00, 0.00, 25.01);
 
 -- --------------------------------------------------------
 
@@ -8709,6 +8680,7 @@ INSERT INTO `units` (`id`, `name`) VALUES
 (2, 'Box'),
 (4, 'Capsule'),
 (11, 'Pack'),
+(13, 'Phile'),
 (10, 'Sachet'),
 (5, 'Strip'),
 (3, 'Tablet'),
@@ -8761,6 +8733,12 @@ ALTER TABLE `customers`
   ADD UNIQUE KEY `gst_no` (`gst_no`),
   ADD UNIQUE KEY `drug_license` (`drug_license`),
   ADD UNIQUE KEY `unique_customer` (`phone`,`gst_no`,`drug_license`);
+
+--
+-- Indexes for table `invoice_settings`
+--
+ALTER TABLE `invoice_settings`
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `manufacturers`
@@ -8903,10 +8881,16 @@ ALTER TABLE `customers`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
+-- AUTO_INCREMENT for table `invoice_settings`
+--
+ALTER TABLE `invoice_settings`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
 -- AUTO_INCREMENT for table `manufacturers`
 --
 ALTER TABLE `manufacturers`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=365;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=366;
 
 --
 -- AUTO_INCREMENT for table `medicines`
@@ -8918,19 +8902,19 @@ ALTER TABLE `medicines`
 -- AUTO_INCREMENT for table `product_master`
 --
 ALTER TABLE `product_master`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13751;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13753;
 
 --
 -- AUTO_INCREMENT for table `purchase_bills`
 --
 ALTER TABLE `purchase_bills`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=46;
 
 --
 -- AUTO_INCREMENT for table `purchase_items`
 --
 ALTER TABLE `purchase_items`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
 
 --
 -- AUTO_INCREMENT for table `retailers`
@@ -8966,13 +8950,13 @@ ALTER TABLE `return_items`
 -- AUTO_INCREMENT for table `sales`
 --
 ALTER TABLE `sales`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=53;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `sales_items`
 --
 ALTER TABLE `sales_items`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=55;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `shops`
@@ -8990,7 +8974,7 @@ ALTER TABLE `suppliers`
 -- AUTO_INCREMENT for table `units`
 --
 ALTER TABLE `units`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT for table `users`
@@ -9050,18 +9034,6 @@ ALTER TABLE `retailer_order_items`
 --
 ALTER TABLE `return_items`
   ADD CONSTRAINT `return_items_ibfk_1` FOREIGN KEY (`return_id`) REFERENCES `returns` (`id`) ON DELETE CASCADE;
-
---
--- Constraints for table `sales`
---
-ALTER TABLE `sales`
-  ADD CONSTRAINT `sales_ibfk_1` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`) ON DELETE CASCADE;
-
---
--- Constraints for table `sales_items`
---
-ALTER TABLE `sales_items`
-  ADD CONSTRAINT `sales_items_ibfk_1` FOREIGN KEY (`sale_id`) REFERENCES `sales` (`id`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

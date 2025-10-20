@@ -27,6 +27,8 @@ import EditProduct from "./pages/EditMedicine";
 import PurchaseInvoicePrint from "./pages/PurchaseInvoicePrint";
 import CurrentStock from "./pages/CurrentStock";
 import ExpiryStock from "./pages/ExpiryStock";
+import LowStock from "./pages/LowStock";
+import InvoiceSettings from "./pages/InvoiceSettings"
 
 
 
@@ -63,6 +65,7 @@ function App() {
         <Route path="sale-invoice/:id" element={<SaleInvoicePrint />} />
         <Route path="current-stock" element={<CurrentStock/>}/>
         <Route path="expiry-stock" element={<ExpiryStock/>}/>
+        <Route path="low-stock" element={<LowStock/>}/>
 
         {/* <Route path="invoice/:id" element={<ViewInvoice />} /> */}
         
@@ -78,6 +81,7 @@ function App() {
         <Route path="purchase-bill" element={<PurchaseBill />} />
         <Route path="purchase-history" element={<PurchaseHistory />} />        
         <Route path="purchase-invoice/:id" element={<PurchaseInvoicePrint />} />
+        <Route path="invoice-settings" element={<InvoiceSettings/>}/>
         <Route path="profile-page" element={<ProfilePage />} />
         <Route path="cancelled-sales" element={<CancelledSales />} />
         <Route path="pending-approvals" element={<PendingApprovals />} />

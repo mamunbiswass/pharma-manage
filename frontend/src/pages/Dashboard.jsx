@@ -225,64 +225,75 @@ function Dashboard() {
         </Col>
       </Row>
 
-      {/* ===== Expiring Soon & Recent Sales ===== */}
-      <Row className="mt-4 g-4">
-        <Col md={6}>
-          <Card className="shadow-sm border-0 p-3">
-            <h5 className="fw-bold mb-3">
-              ⏳ Expiring Soon Medicines (Next 30 Days)
-            </h5>
-            <Table bordered hover size="sm" responsive>
-              <thead>
-                <tr>
-                  <th>Medicine</th>
-                  <th>Expiry</th>
-                </tr>
-              </thead>
-              <tbody>
-                {expiringList.length > 0 ? (
-                  expiringList.map((e, i) => (
-                    <tr key={i}>
-                      <td>{e.name}</td>
-                      <td>{e.expiry}</td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="2" className="text-center text-muted">
-                      ✅ No medicines expiring soon
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </Table>
-          </Card>
-        </Col>
+{/* ===== Expiring Soon & Recent Sales ===== */}
+<Row className="mt-4 g-4">
+  <Col md={6}>
+    <Card className="shadow-sm border-0 p-3">
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <h5 className="fw-bold">⏳ Expiring Soon (Next 30 Days)</h5>
+        <Button
+          variant="outline-primary"
+          size="sm"
+          href="/expiry-stock"
+          className="fw-semibold"
+        >
+          View All →
+        </Button>
+      </div>
 
-        <Col md={6}>
-          <Card className="shadow-sm border-0 p-3">
-            <h5 className="fw-bold mb-3">🧾 Recent Sales</h5>
-            <Table bordered hover size="sm" responsive>
-              <thead>
-                <tr>
-                  <th>Invoice</th>
-                  <th>Customer</th>
-                  <th>Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentSales.map((s, i) => (
-                  <tr key={i}>
-                    <td>{s.invoice}</td>
-                    <td>{s.customer}</td>
-                    <td>₹{Number(s.total || 0).toFixed(2)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          </Card>
-        </Col>
-      </Row>
+      <Table bordered hover size="sm" responsive>
+        <thead>
+          <tr>
+            <th>Medicine</th>
+            <th>Expiry</th>
+          </tr>
+        </thead>
+        <tbody>
+          {expiringList.length > 0 ? (
+            expiringList.slice(0, 5).map((e, i) => (
+              <tr key={i}>
+                <td>{e.name}</td>
+                <td>{e.expiry}</td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan="2" className="text-center text-muted">
+                ✅ No medicines expiring soon
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </Table>
+    </Card>
+  </Col>
+
+  {/* Recent Sales (unchanged) */}
+  <Col md={6}>
+    <Card className="shadow-sm border-0 p-3">
+      <h5 className="fw-bold mb-3">🧾 Recent Sales</h5>
+      <Table bordered hover size="sm" responsive>
+        <thead>
+          <tr>
+            <th>Invoice</th>
+            <th>Customer</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {recentSales.map((s, i) => (
+            <tr key={i}>
+              <td>{s.invoice}</td>
+              <td>{s.customer}</td>
+              <td>₹{Number(s.total || 0).toFixed(2)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+    </Card>
+  </Col>
+</Row>
+
 
       {/* ===== Quick Actions ===== */}
       <Row className="mt-4">

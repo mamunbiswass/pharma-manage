@@ -26,6 +26,7 @@ const suppliersRoute = require("./routes/suppliers");
 const customersRoute = require("./routes/customers");
 const businessRoute = require("./routes/business");
 const purchaseBillsRoute = require("./routes/purchaseBills");
+const invoiceSettingsRoute = require("./routes/invoiceSettings");
 const returnsRoute = require("./routes/returns");
 const retailersRoute = require("./routes/retailers");
 const retailerProductsRoute = require("./routes/retailerProducts");
@@ -37,7 +38,9 @@ const promoRoute = require("./routes/promo");
 const adminRetailersRoute = require("./routes/adminRetailers");
 const stockRoute = require("./routes/stock");
 const currentStockRoute = require("./routes/currentStock");
-const expiryStockRoutes = require("./routes/expiryStock");
+const lowStockRoutes = require("./routes/lowStock");
+
+// const expiryStockRoutes = require("./routes/expiryStock++++");
 
 // ================= REGISTER ROUTES =================
 
@@ -52,7 +55,9 @@ app.use("/api/manufacturers", manufacturersRoute);
 app.use("/api/units", unitRoutes);
 app.use("/api/stock", stockRoute);
 app.use("/api/current-stock", currentStockRoute);
-app.use("/api/expiry-stock", expiryStockRoutes);
+app.use("/api/low-stock", lowStockRoutes);
+
+// app.use("/api/expiry-stock", expiryStockRoutes);
 
 
 // 🧾 Billing & Transactions
@@ -62,6 +67,10 @@ app.use("/api/returns", returnsRoute);
 app.use("/api/suppliers", suppliersRoute);
 app.use("/api/customers", customersRoute);
 app.use("/api/sales", salesRoute);
+// app.use("/api/invoice-settings", invoiceSettingsRoute);
+app.use("/api/invoice-settings", require("./routes/invoiceSettings"));
+
+
 
 // 📊 Dashboard
 app.use("/api/dashboard", dashboardRoute);

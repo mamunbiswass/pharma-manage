@@ -9,31 +9,31 @@ function SaleInvoicePrint() {
   const { id } = useParams();
   const [invoice, setInvoice] = useState(null);
   const [business, setBusiness] = useState(null);
+  const [settings, setSettings] = useState(null);
 
   useEffect(() => {
-    async function fetchInvoice() {
+    async function fetchData() {
       try {
-        const res = await API.get(`/sales/${id}`);
-        setInvoice(res.data);
+        const [invoiceRes, businessRes, settingsRes] = await Promise.all([
+          API.get(`/sales/${id}`),
+          API.get("/business"),
+          API.get("/invoice-settings"),
+        ]);
+        setInvoice(invoiceRes.data);
+        setBusiness(businessRes.data);
+
+        const data = settingsRes.data;
+        data.show_logo = Boolean(Number(data.show_logo));
+        data.show_qr = Boolean(Number(data.show_qr));
+        setSettings(data);
       } catch (err) {
-        console.error("❌ Failed to fetch invoice:", err);
+        console.error("❌ Failed to load invoice data:", err);
       }
     }
-
-    async function fetchBusiness() {
-      try {
-        const res = await API.get("/business");
-        setBusiness(res.data);
-      } catch (err) {
-        console.error("❌ Failed to fetch business info:", err);
-      }
-    }
-
-    fetchInvoice();
-    fetchBusiness();
+    fetchData();
   }, [id]);
 
-  if (!invoice)
+  if (!invoice || !settings)
     return (
       <div className="text-center mt-5">
         <Spinner animation="border" />
@@ -42,13 +42,11 @@ function SaleInvoicePrint() {
     );
 
   const { sale, items } = invoice;
-
-  // ✅ Safe number function
   const safeNum = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
-  // ✅ Format date for invoice
+  // ===== Format Helpers =====
   const formatDate = (dateStr) => {
-    if (!dateStr) return "";
+    if (!dateStr) return "-";
     const d = new Date(dateStr);
     if (isNaN(d)) return "-";
     return `${String(d.getDate()).padStart(2, "0")}-${String(
@@ -56,7 +54,6 @@ function SaleInvoicePrint() {
     ).padStart(2, "0")}-${d.getFullYear()}`;
   };
 
-  // ✅ Format expiry as MM/YY
   const formatExpiry = (expStr) => {
     if (!expStr) return "-";
     const d = new Date(expStr);
@@ -66,7 +63,7 @@ function SaleInvoicePrint() {
     return `${mm}/${yy}`;
   };
 
-  // ✅ Convert Amount to Words
+  // ===== Amount in Words =====
   function amountInWords(amount) {
     const ones = [
       "",
@@ -111,22 +108,10 @@ function SaleInvoicePrint() {
       if (num < 1000)
         return ones[Math.floor(num / 100)] + " Hundred " + numToWords(num % 100);
       if (num < 100000)
-        return (
-          numToWords(Math.floor(num / 1000)) +
-          " Thousand " +
-          numToWords(num % 1000)
-        );
+        return numToWords(Math.floor(num / 1000)) + " Thousand " + numToWords(num % 1000);
       if (num < 10000000)
-        return (
-          numToWords(Math.floor(num / 100000)) +
-          " Lakh " +
-          numToWords(num % 100000)
-        );
-      return (
-        numToWords(Math.floor(num / 10000000)) +
-        " Crore " +
-        numToWords(num % 10000000)
-      );
+        return numToWords(Math.floor(num / 100000)) + " Lakh " + numToWords(num % 100000);
+      return numToWords(Math.floor(num / 10000000)) + " Crore " + numToWords(num % 10000000);
     }
 
     const [rupees, paisa] = amount.toFixed(2).split(".");
@@ -138,71 +123,73 @@ function SaleInvoicePrint() {
     return words.trim() + " Only";
   }
 
-  // ✅ UPI QR Code Data
-  const upiId = "9681265732-2@ybl";
-  const qrData = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(
-    business?.name || "Business"
-  )}&am=${sale.total}&cu=INR&tn=Invoice-${sale.invoice_number}`;
+  // ===== ✅ Fixed UPI QR Code Section =====
+ const upiId = settings && settings.upi ? settings.upi.trim() : "";
+ // ✅ ensure correct UPI ID
+  const payeeName = encodeURIComponent(business?.name || "Business");
+  const note = encodeURIComponent(`Invoice-${sale.invoice_number}`);
+  const amount = encodeURIComponent(sale.total || 0);
 
-  // ✅ GST Summary
+  const qrData = `upi://pay?pa=${upiId}&pn=${payeeName}&am=${amount}&cu=INR&tn=${note}`;
+
+  console.log("✅ Generated QR Data:", qrData); // for debugging
+
+  // ===== GST Summary =====
   const gstSummary = {};
   items.forEach((it) => {
-    const rate = safeNum(it.rate);
+    const gst = safeNum(it.gst);
+    const gstHalf = gst / 2;
     const qty = safeNum(it.qty);
+    const rate = safeNum(it.rate);
     const disc = safeNum(it.disc);
-    const sgstPct = safeNum(it.sgst);
-    const cgstPct = safeNum(it.cgst);
-    const base = Math.max(0, qty * rate - (qty * rate * disc) / 100);
-    const sgstAmt = (base * sgstPct) / 100;
-    const cgstAmt = (base * cgstPct) / 100;
-    const classKey = `${sgstPct + cgstPct}%`;
+    const base = qty * rate - (qty * rate * disc) / 100;
+    const sgstAmt = (base * gstHalf) / 100;
+    const cgstAmt = (base * gstHalf) / 100;
+    const key = `${gst}%`;
 
-    if (!gstSummary[classKey])
-      gstSummary[classKey] = { taxable: 0, sgst: 0, cgst: 0 };
+    if (!gstSummary[key])
+      gstSummary[key] = { taxable: 0, sgst: 0, cgst: 0 };
 
-    gstSummary[classKey].taxable += base;
-    gstSummary[classKey].sgst += sgstAmt;
-    gstSummary[classKey].cgst += cgstAmt;
+    gstSummary[key].taxable += base;
+    gstSummary[key].sgst += sgstAmt;
+    gstSummary[key].cgst += cgstAmt;
   });
 
   return (
     <Card className="mt-4 p-4 invoice-print-area">
-      {/* Header */}
+      {/* ===== Header ===== */}
       <div className="d-flex justify-content-between align-items-center mb-3">
-        <h4 className="fw-bold">
-          🧾 Invoice #{sale.invoice_number || "—"}
-        </h4>
+        <h4 className="fw-bold">🧾 Invoice #{sale.invoice_number}</h4>
         <Button className="no-print" variant="success" onClick={() => window.print()}>
           🖨 Print / Save
         </Button>
       </div>
 
-      {/* Business + Customer Info */}
+      {/* ===== Business + QR + Customer Info ===== */}
       <Row className="mb-4 align-items-center">
         <Col md={5}>
-          {business && (
-            <>
-              {business.logo && (
-                <Image
-                  src={`http://localhost:5000/uploads/logo/${business.logo}`}
-                  alt="Business Logo"
-                  height={100}
-                  className="mb-2 me-3"
-                />
-              )}
-              <h5 className="fw-bold">{business.name}</h5>
-              <p className="mb-0">{business.address}</p>
-              <p className="mb-0">📞 {business.phone}</p>
-              <p className="mb-0">✉️ {business.email}</p>
-              <p className="mb-0">GSTIN: {business.tax_number}</p>
-            </>
+          {!!settings.show_logo && settings.logo && (
+            <Image
+              src={`http://localhost:5000/uploads/logo/${settings.logo}`}
+              alt="Business Logo"
+              height={80}
+              className="mb-2"
+            />
           )}
+          <h5 className="fw-bold">{business.name}</h5>
+          <p>{business.address}</p>
+          <p>📞 {business.phone}</p>
+          <p>GSTIN: {business.tax_number}</p>
         </Col>
 
         <Col md={2} className="text-center">
-          <h6 className="fw-bold">Scan & Pay</h6>
-          <QRCodeCanvas value={qrData} size={110} includeMargin />
-          <p className="small text-muted mt-1">Pay via UPI</p>
+          {!!settings.show_qr && (
+            <>
+              <h6 className="fw-bold">Scan & Pay</h6>
+              <QRCodeCanvas value={qrData} size={150} includeMargin />
+              <p className="small text-muted mt-1">Pay via UPI</p>
+            </>
+          )}
         </Col>
 
         <Col md={5} className="text-end">
@@ -214,16 +201,10 @@ function SaleInvoicePrint() {
             <strong>Date:</strong> {formatDate(sale.created_at)}{" "}
             <strong>Time:</strong> {new Date(sale.created_at).toLocaleTimeString()}
           </p>
-          <p>
-            <strong>Bill Type:</strong> {sale.bill_type} |
-            <strong> Payment:</strong> {sale.payment_mode} ({sale.payment_status})
-          </p>
         </Col>
       </Row>
 
-      <h3 className="fw-bold text-center mb-3">TAX INVOICE</h3>
-
-      {/* Table */}
+      {/* ===== Item Table ===== */}
       <Table bordered hover responsive className="align-middle text-center">
         <thead className="table-dark">
           <tr>
@@ -244,14 +225,13 @@ function SaleInvoicePrint() {
         </thead>
         <tbody>
           {items.map((it, i) => {
+            const gstHalf = Number(it.gst) / 2;
             const qty = safeNum(it.qty);
             const rate = safeNum(it.rate);
             const disc = safeNum(it.disc);
-            const sgst = safeNum(it.sgst);
-            const cgst = safeNum(it.cgst);
-            const base = Math.max(0, qty * rate - (qty * rate * disc) / 100);
-            const sgstAmt = (base * sgst) / 100;
-            const cgstAmt = (base * cgst) / 100;
+            const base = qty * rate - (qty * rate * disc) / 100;
+            const sgstAmt = (base * gstHalf) / 100;
+            const cgstAmt = (base * gstHalf) / 100;
             const total = base + sgstAmt + cgstAmt;
 
             return (
@@ -259,28 +239,28 @@ function SaleInvoicePrint() {
                 <td>{i + 1}</td>
                 <td>{it.product_name}</td>
                 <td>{it.batch || "—"}</td>
-                <td>{it.pack || "—"}</td>
+                <td>{it.unit || "—"}</td>
                 <td>{formatExpiry(it.expiry_date)}</td>
                 <td>{it.hsn || "—"}</td>
                 <td>{qty}</td>
                 <td>{safeNum(it.mrp).toFixed(2)}</td>
                 <td>{rate.toFixed(2)}</td>
                 <td>{disc.toFixed(2)}</td>
-                <td>{sgst.toFixed(2)}</td>
-                <td>{cgst.toFixed(2)}</td>
-                <td className="fw-bold">{total.toFixed(2)}</td>
+                <td>{gstHalf.toFixed(2)}</td>
+                <td>{gstHalf.toFixed(2)}</td>
+                <td>{total.toFixed(2)}</td>
               </tr>
             );
           })}
         </tbody>
       </Table>
 
-      {/* GST Summary + Totals */}
+      {/* ===== GST Summary ===== */}
       <Row className="mt-4">
         <Col md={8}>
           <h6 className="fw-bold">GST Summary</h6>
           <Table bordered size="sm" className="text-center">
-            <thead>
+            <thead className="table-dark">
               <tr>
                 <th>Class</th>
                 <th>Taxable</th>
@@ -290,18 +270,58 @@ function SaleInvoicePrint() {
               </tr>
             </thead>
             <tbody>
-              {Object.keys(gstSummary).map((k) => {
-                const g = gstSummary[k];
-                return (
-                  <tr key={k}>
-                    <td>{k}</td>
-                    <td>{g.taxable.toFixed(2)}</td>
-                    <td>{g.sgst.toFixed(2)}</td>
-                    <td>{g.cgst.toFixed(2)}</td>
-                    <td>{(g.sgst + g.cgst).toFixed(2)}</td>
+              {Object.keys(gstSummary).length > 0 ? (
+                <>
+                  {Object.keys(gstSummary).map((k) => {
+                    const g = gstSummary[k];
+                    const taxable = Number(g.taxable || 0);
+                    const sgst = Number(g.sgst || 0);
+                    const cgst = Number(g.cgst || 0);
+                    const totalGst = sgst + cgst;
+                    return (
+                      <tr key={k}>
+                        <td>{k}</td>
+                        <td>{taxable.toFixed(2)}</td>
+                        <td>{sgst.toFixed(2)}</td>
+                        <td>{cgst.toFixed(2)}</td>
+                        <td>{totalGst.toFixed(2)}</td>
+                      </tr>
+                    );
+                  })}
+                  <tr className="fw-bold table-secondary">
+                    <td>Total</td>
+                    <td>
+                      {Object.values(gstSummary)
+                        .reduce((sum, g) => sum + Number(g.taxable || 0), 0)
+                        .toFixed(2)}
+                    </td>
+                    <td>
+                      {Object.values(gstSummary)
+                        .reduce((sum, g) => sum + Number(g.sgst || 0), 0)
+                        .toFixed(2)}
+                    </td>
+                    <td>
+                      {Object.values(gstSummary)
+                        .reduce((sum, g) => sum + Number(g.cgst || 0), 0)
+                        .toFixed(2)}
+                    </td>
+                    <td>
+                      {Object.values(gstSummary)
+                        .reduce(
+                          (sum, g) => sum + Number(g.sgst || 0) + Number(g.cgst || 0),
+                          0
+                        )
+                        .toFixed(2)}
+                    </td>
                   </tr>
-                );
-              })}
+                </>
+              ) : (
+                <tr>
+                  <td colSpan="5" className="text-center text-muted">
+                    No GST data available
+                  </td>
+                </tr>
+              )}
             </tbody>
           </Table>
         </Col>
@@ -310,8 +330,6 @@ function SaleInvoicePrint() {
           <div className="border p-3">
             <p>Subtotal: ₹{safeNum(sale.subtotal).toFixed(2)}</p>
             <p>Discount: ₹{safeNum(sale.discount).toFixed(2)}</p>
-            <p>SGST: ₹{safeNum(sale.sgst).toFixed(2)}</p>
-            <p>CGST: ₹{safeNum(sale.cgst).toFixed(2)}</p>
             <p>Paid: ₹{safeNum(sale.paid_amount).toFixed(2)}</p>
             <p>Due: ₹{safeNum(sale.due_amount).toFixed(2)}</p>
             <h5 className="fw-bold text-success">
@@ -321,17 +339,13 @@ function SaleInvoicePrint() {
         </Col>
       </Row>
 
-      {/* Footer */}
+      {/* ===== Footer ===== */}
       <div className="mt-4 border-top pt-3">
         <p>
           <strong>In Words:</strong> {amountInWords(safeNum(sale.total))}
         </p>
-        <p className="small">
-          All disputes are subject to local jurisdiction only. Goods once sold cannot be returned.
-        </p>
-        <p className="fw-bold text-end">
-          For {business?.name || "Your Business"}
-        </p>
+        <p className="small">{settings.footer_note}</p>
+        <p className="fw-bold text-end">{settings.signature_text}</p>
       </div>
     </Card>
   );

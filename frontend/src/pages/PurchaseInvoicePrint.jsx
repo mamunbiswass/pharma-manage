@@ -1,4 +1,3 @@
-// src/pages/PurchaseInvoicePrint.jsx
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import API from "../api/axios";
@@ -10,30 +9,27 @@ function PurchaseInvoicePrint() {
   const { id } = useParams();
   const [invoice, setInvoice] = useState(null);
   const [business, setBusiness] = useState(null);
+  const [settings, setSettings] = useState(null); // ✅ invoice settings
 
   useEffect(() => {
-    async function fetchInvoice() {
+    async function fetchData() {
       try {
-        const res = await API.get(`/purchase-bills/${id}`);
-        setInvoice(res.data);
+        const [invoiceRes, businessRes, settingsRes] = await Promise.all([
+          API.get(`/purchase-bills/${id}`),
+          API.get("/business"),
+          API.get("/invoice-settings"),
+        ]);
+        setInvoice(invoiceRes.data);
+        setBusiness(businessRes.data);
+        setSettings(settingsRes.data);
       } catch (err) {
-        console.error("Failed to fetch purchase invoice:", err);
+        console.error("❌ Failed to load invoice data:", err);
       }
     }
-
-    async function fetchBusiness() {
-      try {
-        const res = await API.get("/business");
-        setBusiness(res.data);
-      } catch (err) {
-        console.error("Failed to fetch business info:", err);
-      }
-    }
-
-    fetchInvoice();
-    fetchBusiness();
+    fetchData();
   }, [id]);
 
+  // ======== Generate Barcode ========
   useEffect(() => {
     if (invoice?.bill?.invoice_no) {
       try {
@@ -44,12 +40,12 @@ function PurchaseInvoicePrint() {
           height: 60,
         });
       } catch (err) {
-        console.error("Barcode generation failed:", err);
+        console.error("❌ Barcode generation failed:", err);
       }
     }
   }, [invoice]);
 
-  if (!invoice)
+  if (!invoice || !settings)
     return (
       <div className="text-center mt-5">
         <Spinner animation="border" />
@@ -59,9 +55,10 @@ function PurchaseInvoicePrint() {
 
   const { bill, items } = invoice;
 
+  // ===== Helper: Safe Number =====
   const safeNum = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
-  // ======== Convert Amount to Words ========
+  // ===== Convert Amount to Words =====
   function amountInWords(amount) {
     const ones = [
       "",
@@ -102,29 +99,14 @@ function PurchaseInvoicePrint() {
       if (num === 0) return "";
       if (num < 20) return ones[num];
       if (num < 100)
-        return (
-          tens[Math.floor(num / 10)] +
-          (num % 10 ? " " + ones[num % 10] : "")
-        );
+        return tens[Math.floor(num / 10)] + (num % 10 ? " " + ones[num % 10] : "");
       if (num < 1000)
         return ones[Math.floor(num / 100)] + " Hundred " + numToWords(num % 100);
       if (num < 100000)
-        return (
-          numToWords(Math.floor(num / 1000)) +
-          " Thousand " +
-          numToWords(num % 1000)
-        );
+        return numToWords(Math.floor(num / 1000)) + " Thousand " + numToWords(num % 1000);
       if (num < 10000000)
-        return (
-          numToWords(Math.floor(num / 100000)) +
-          " Lakh " +
-          numToWords(num % 100000)
-        );
-      return (
-        numToWords(Math.floor(num / 10000000)) +
-        " Crore " +
-        numToWords(num % 10000000)
-      );
+        return numToWords(Math.floor(num / 100000)) + " Lakh " + numToWords(num % 100000);
+      return numToWords(Math.floor(num / 10000000)) + " Crore " + numToWords(num % 10000000);
     }
 
     const [rupees, paisa] = amount.toFixed(2).split(".");
@@ -136,7 +118,7 @@ function PurchaseInvoicePrint() {
     return words.trim() + " Only";
   }
 
-  // ======== Date Formatters ========
+  // ===== Date Formatters =====
   const formatDate = (dateStr) => {
     if (!dateStr) return "";
     const d = new Date(dateStr);
@@ -156,7 +138,7 @@ function PurchaseInvoicePrint() {
     return `${mm}/${yy}`;
   };
 
-  // ======== GST Summary ========
+  // ===== GST Summary =====
   const gstSummary = {};
   items.forEach((it) => {
     const rate = safeNum(it.gst_rate);
@@ -169,24 +151,22 @@ function PurchaseInvoicePrint() {
 
   return (
     <Card className="mt-4 p-4 invoice-print-area">
+      {/* Header */}
       <div className="d-flex justify-content-between align-items-center mb-3">
         <h4 className="fw-bold">📦 Purchase Invoice #{bill.invoice_no}</h4>
-        <Button
-          className="no-print"
-          variant="success"
-          onClick={() => window.print()}
-        >
+        <Button className="no-print" variant="success" onClick={() => window.print()}>
           🖨 Print / Save
         </Button>
       </div>
 
       <Row className="mb-4 align-items-center">
+        {/* === Business Info === */}
         <Col md={4}>
           {business && (
             <>
-              {business.logo && (
+              {!!settings.show_logo && settings.logo && (
                 <Image
-                  src={`http://localhost:5000/uploads/logo/${business.logo}`}
+                  src={`http://localhost:5000/uploads/logo/${settings.logo}`}
                   alt="Business Logo"
                   height={100}
                   className="mb-2 me-3"
@@ -200,10 +180,12 @@ function PurchaseInvoicePrint() {
           )}
         </Col>
 
+        {/* === Barcode (Center) === */}
         <Col md={4} className="text-center">
           <svg id="invoice-barcode"></svg>
         </Col>
 
+        {/* === Supplier Info === */}
         <Col md={4} className="text-end">
           <h5 className="fw-bold">Supplier Info</h5>
           <p className="mb-0">
@@ -247,7 +229,7 @@ function PurchaseInvoicePrint() {
             <tr key={i}>
               <td>{i + 1}</td>
               <td>{it.product_name}</td>
-              <td>{it.hsn_code || "—"}</td> {/* ✅ Show HSN properly */}
+              <td>{it.hsn_code || "—"}</td>
               <td>{it.batch_no || "—"}</td>
               <td>{it.unit || "—"}</td>
               <td>{formatExpiry(it.expiry_date)}</td>
@@ -310,13 +292,8 @@ function PurchaseInvoicePrint() {
         <p>
           <strong>In Words:</strong> {amountInWords(safeNum(bill.total_amount))}
         </p>
-        <p className="small">
-          Goods once purchased cannot be returned. All disputes subject to local
-          jurisdiction.
-        </p>
-        <p className="fw-bold text-end">
-          For {business?.name || "Your Pharmacy"}
-        </p>
+        <p className="small">{settings.footer_note}</p>
+        <p className="fw-bold text-end">{settings.signature_text}</p>
       </div>
     </Card>
   );

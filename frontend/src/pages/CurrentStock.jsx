@@ -17,7 +17,7 @@ function CurrentStock() {
       const data = Array.isArray(res.data) ? res.data : [];
       setStock(data);
     } catch (err) {
-      console.error("Failed to fetch stock:", err);
+      console.error("❌ Failed to fetch stock:", err);
       setStock([]);
     } finally {
       setLoading(false);
@@ -29,11 +29,13 @@ function CurrentStock() {
   }, []);
 
   // 🔍 Filter Logic
-  const filteredStock = stock.filter((item) => {
-    const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase());
-    const matchesLowStock = filterLow ? item.qty <= 10 : true;
-    return matchesSearch && matchesLowStock;
-  });
+  const filteredStock = stock
+    .filter((item) => Number(item.qty || 0) > 0) // ✅ show only items with stock > 0
+    .filter((item) => {
+      const matchesSearch = item.name?.toLowerCase().includes(search.toLowerCase());
+      const matchesLowStock = filterLow ? Number(item.qty || 0) <= 10 : true;
+      return matchesSearch && matchesLowStock;
+    });
 
   // 📦 Summary Totals
   const totalProducts = filteredStock.length;
@@ -50,19 +52,17 @@ function CurrentStock() {
   // 📥 Export CSV
   const exportCSV = () => {
     const csvContent = [
-      ["Product", "HSN", "GST%", "Batch", "Qty", "Purchase Rate", "MRP", "Expiry"],
+      ["Product", "HSN", "GST%", "Qty", "Purchase Rate", "MRP"],
       ...filteredStock.map((s) => [
         s.name,
         s.hsn,
         s.gst,
-        s.batch,
         s.qty,
         s.purchase_rate,
         s.mrp,
-        s.expiry,
       ]),
       [],
-      ["Summary", "", "", "", "", "", "", ""],
+      ["Summary"],
       ["Total Products", totalProducts],
       ["Total Quantity", totalQty],
       ["Total Purchase Value", totalPurchaseValue.toFixed(2)],
@@ -88,7 +88,7 @@ function CurrentStock() {
             🔄 Refresh
           </Button>
           <Button variant="success" size="sm" onClick={exportCSV}>
-            <Download size={16} /> Export CSV
+            <Download size={16} className="me-1" /> Export CSV
           </Button>
         </div>
       </Card.Header>
@@ -143,11 +143,9 @@ function CurrentStock() {
                   <th>Medicine</th>
                   <th>HSN</th>
                   <th>GST%</th>
-                  <th>Batch</th>
                   <th>Qty</th>
                   <th>Purchase Rate</th>
                   <th>MRP</th>
-                  <th>Expiry</th>
                 </tr>
               </thead>
               <tbody>
@@ -157,17 +155,15 @@ function CurrentStock() {
                     <td className="text-start">{s.name}</td>
                     <td>{s.hsn}</td>
                     <td>{s.gst}</td>
-                    <td>{s.batch}</td>
                     <td className={s.qty <= 10 ? "text-danger fw-bold" : ""}>{s.qty}</td>
                     <td>₹{Number(s.purchase_rate || 0).toFixed(2)}</td>
                     <td>₹{Number(s.mrp || 0).toFixed(2)}</td>
-                    <td>{s.expiry}</td>
                   </tr>
                 ))}
               </tbody>
             </Table>
 
-            {/* 📊 Valuation Summary */}
+            {/* 📊 Summary */}
             <div className="text-end mt-3 border-top pt-3">
               <h6 className="fw-bold text-secondary">
                 Total Purchase Value:{" "}
