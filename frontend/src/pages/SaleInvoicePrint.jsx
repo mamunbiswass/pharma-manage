@@ -42,20 +42,22 @@ function SaleInvoicePrint() {
     );
 
   const { sale, items } = invoice;
-  // const safeNum = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+
+  // ✅ Safe number converter
   const safeNum = (v) => {
-    const num = parseFloat(v);
-    return isNaN(num) ? 0 : num;
+    const n = Number(v);
+    return isNaN(n) || n === null ? 0 : n;
   };
 
-  // ===== Format Helpers =====
+  // ✅ Format Date
   const formatDate = (dateStr) => {
     if (!dateStr) return "-";
     const d = new Date(dateStr);
-    if (isNaN(d)) return "-";
-    return `${String(d.getDate()).padStart(2, "0")}-${String(
-      d.getMonth() + 1
-    ).padStart(2, "0")}-${d.getFullYear()}`;
+    return isNaN(d)
+      ? "-"
+      : `${String(d.getDate()).padStart(2, "0")}-${String(
+          d.getMonth() + 1
+        ).padStart(2, "0")}-${d.getFullYear()}`;
   };
 
   const formatExpiry = (expStr) => {
@@ -67,7 +69,7 @@ function SaleInvoicePrint() {
     return `${mm}/${yy}`;
   };
 
-  // ===== Amount in Words =====
+  // ✅ Convert number to words
   function amountInWords(amount) {
     const ones = [
       "",
@@ -127,30 +129,35 @@ function SaleInvoicePrint() {
     return words.trim() + " Only";
   }
 
-  // ===== ✅ Fixed UPI QR Code Section =====
- const upiId = settings && settings.upi ? settings.upi.trim() : "";
- // ✅ ensure correct UPI ID
+  // ✅ UPI QR Code
+  const upiId = settings?.upi?.trim() || "";
   const payeeName = encodeURIComponent(business?.name || "Business");
   const note = encodeURIComponent(`Invoice-${sale.invoice_number}`);
   const amount = encodeURIComponent(sale.total || 0);
-
   const qrData = `upi://pay?pa=${upiId}&pn=${payeeName}&am=${amount}&cu=INR&tn=${note}`;
 
-  console.log("✅ Generated QR Data:", qrData); // for debugging
-
-  // ===== GST Summary & Subtotal Calculation =====
+  // ✅ GST Summary + Item Discount Calculation
   const gstSummary = {};
   let subtotal = 0;
+  let totalDiscount = 0;
+
   items.forEach((it) => {
-    const gst = safeNum(it.gst);
-    const gstHalf = gst / 2;
     const qty = safeNum(it.qty);
     const rate = safeNum(it.rate);
-    const disc = safeNum(it.disc);
-    const base = qty * rate - (qty * rate * disc) / 100;
+    const gst = safeNum(it.gst);
+    const disc = safeNum(it.disc); // item-level discount %
+
+    const itemGross = qty * rate;
+    const itemDiscount = (itemGross * disc) / 100;
+    totalDiscount += itemDiscount;
+
+    const base = itemGross - itemDiscount;
     subtotal += base;
+
+    const gstHalf = gst / 2;
     const sgstAmt = (base * gstHalf) / 100;
     const cgstAmt = (base * gstHalf) / 100;
+
     const key = `${gst}%`;
     if (!gstSummary[key]) gstSummary[key] = { taxable: 0, sgst: 0, cgst: 0 };
     gstSummary[key].taxable += base;
@@ -158,44 +165,27 @@ function SaleInvoicePrint() {
     gstSummary[key].cgst += cgstAmt;
   });
 
-// ===== Fix discount & totals =====
-const invoiceDiscount = safeNum(sale.discount || 0); // overall discount (flat amount or percent)
-const totalGst = Object.values(gstSummary).reduce(
-  (sum, g) => sum + safeNum(g.sgst) + safeNum(g.cgst),
-  0
-);
+  const totalGst = Object.values(gstSummary).reduce(
+    (sum, g) => sum + safeNum(g.sgst) + safeNum(g.cgst),
+    0
+  );
 
-// ✅ যদি discount শতাংশ (যেমন 5%) আকারে থাকে, তাহলে subtotal থেকে হিসাব করো
-let discountAmount = 0;
-if (invoiceDiscount > 0) {
-  // যদি backend থেকে discount_type আসে, সেই অনুযায়ী গণনা করো (flat or percent)
-  if (sale.discount_type === "percent") {
-    discountAmount = (subtotal * invoiceDiscount) / 100;
-  } else {
-    discountAmount = invoiceDiscount;
-  }
-}
+  const grandTotal = subtotal + totalGst;
 
-// ✅ grand total calculation
-const grandTotal = subtotal - discountAmount + totalGst;
+  if (!sale.total || isNaN(sale.total)) sale.total = grandTotal;
 
-
-// যদি backend total না দেয়, frontend থেকে ঠিক করে
-if (!sale.total || isNaN(sale.total)) sale.total = grandTotal;
-
-
+  // ✅ UI
   return (
     <Card className="mt-4 p-4 invoice-print-area">
-      {/* ===== Header ===== */}
       <div className="text-end mb-3">
         <Button className="no-print" variant="success" onClick={() => window.print()}>
           🖨 Print / Save
         </Button>
       </div>
 
-      {/* ===== Business + QR + Customer Info ===== */}
+      {/* ===== Header ===== */}
       <Row className="mb-4 align-items-center">
-        <Col md={5} className="business_info">
+        <Col md={5}>
           {!!settings.show_logo && settings.logo && (
             <Image
               src={`http://localhost:5000/uploads/logo/${settings.logo}`}
@@ -215,12 +205,11 @@ if (!sale.total || isNaN(sale.total)) sale.total = grandTotal;
             <>
               <h6 className="fw-bold mb-0">Scan & Pay</h6>
               <QRCodeCanvas value={qrData} size={150} includeMargin />
-              {/* <p className="small text-muted mt-1">Pay via UPI</p> */}
             </>
           )}
         </Col>
 
-        <Col md={5} className="text-end customer_info">
+        <Col md={5} className="text-end">
           <h5 className="fw-bold">Customer Info</h5>
           <p><strong>Name:</strong> {sale.customer_name}</p>
           <p><strong>Phone:</strong> {sale.phone || "—"}</p>
@@ -232,8 +221,10 @@ if (!sale.total || isNaN(sale.total)) sale.total = grandTotal;
           <h5 className="fw-bold">🧾 Invoice #{sale.invoice_number}</h5>
         </Col>
       </Row>
+
       <h3 className="fw-bold text-center mb-3">SALE INVOICE</h3>
-      {/* ===== Item Table ===== */}
+
+      {/* ===== Items Table ===== */}
       <Table bordered hover responsive className="align-middle text-center">
         <thead className="table-dark">
           <tr>
@@ -284,7 +275,7 @@ if (!sale.total || isNaN(sale.total)) sale.total = grandTotal;
         </tbody>
       </Table>
 
-      {/* ===== GST Summary ===== */}
+      {/* ===== GST + Total Summary ===== */}
       <Row className="mt-4">
         <Col md={8}>
           <h6 className="fw-bold">GST Summary</h6>
@@ -303,46 +294,17 @@ if (!sale.total || isNaN(sale.total)) sale.total = grandTotal;
                 <>
                   {Object.keys(gstSummary).map((k) => {
                     const g = gstSummary[k];
-                    const taxable = Number(g.taxable || 0);
-                    const sgst = Number(g.sgst || 0);
-                    const cgst = Number(g.cgst || 0);
-                    const totalGst = sgst + cgst;
+                    const totalGst = safeNum(g.sgst) + safeNum(g.cgst);
                     return (
                       <tr key={k}>
                         <td>{k}</td>
-                        <td>{taxable.toFixed(2)}</td>
-                        <td>{sgst.toFixed(2)}</td>
-                        <td>{cgst.toFixed(2)}</td>
+                        <td>{g.taxable.toFixed(2)}</td>
+                        <td>{g.sgst.toFixed(2)}</td>
+                        <td>{g.cgst.toFixed(2)}</td>
                         <td>{totalGst.toFixed(2)}</td>
                       </tr>
                     );
                   })}
-                  <tr className="fw-bold table-secondary">
-                    <td>Total</td>
-                    <td>
-                      {Object.values(gstSummary)
-                        .reduce((sum, g) => sum + Number(g.taxable || 0), 0)
-                        .toFixed(2)}
-                    </td>
-                    <td>
-                      {Object.values(gstSummary)
-                        .reduce((sum, g) => sum + Number(g.sgst || 0), 0)
-                        .toFixed(2)}
-                    </td>
-                    <td>
-                      {Object.values(gstSummary)
-                        .reduce((sum, g) => sum + Number(g.cgst || 0), 0)
-                        .toFixed(2)}
-                    </td>
-                    <td>
-                      {Object.values(gstSummary)
-                        .reduce(
-                          (sum, g) => sum + Number(g.sgst || 0) + Number(g.cgst || 0),
-                          0
-                        )
-                        .toFixed(2)}
-                    </td>
-                  </tr>
                 </>
               ) : (
                 <tr>
@@ -355,14 +317,25 @@ if (!sale.total || isNaN(sale.total)) sale.total = grandTotal;
           </Table>
         </Col>
 
+        {/* ✅ Totals Section */}
         <Col md={4} className="text-end sub_total">
-          <div className="border p-3">
-            <p>Subtotal: ₹{subtotal.toFixed(2)}</p>
-            <p>Discount: ₹{discountAmount.toFixed(2)}</p>
-            <p>GST: ₹{totalGst.toFixed(2)}</p>
-            <p>Paid: ₹{safeNum(sale.paid_amount).toFixed(2)}</p>
-            <p>Due: ₹{safeNum(sale.due_amount).toFixed(2)}</p>
-            <h5 className="fw-bold text-success">
+          <div className="border p-3 bg-light rounded">
+            <p className="mb-1">
+              <strong>Subtotal (After Discount):</strong> ₹{subtotal.toFixed(2)}
+            </p>
+            <p className="mb-1">
+              <strong>Total Discount:</strong> ₹{totalDiscount.toFixed(2)}
+            </p>
+            <p className="mb-1">
+              <strong>GST:</strong> ₹{totalGst.toFixed(2)}
+            </p>
+            <p className="mb-1">
+              <strong>Paid:</strong> ₹{safeNum(sale.paid_amount).toFixed(2)}
+            </p>
+            <p className="mb-2">
+              <strong>Due:</strong> ₹{safeNum(sale.due_amount).toFixed(2)}
+            </p>
+            <h5 className="fw-bold text-success border-top pt-2 mt-2">
               Grand Total: ₹{grandTotal.toFixed(2)}
             </h5>
           </div>

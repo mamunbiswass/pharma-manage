@@ -3,23 +3,20 @@ const express = require("express");
 const router = express.Router();
 const db = require("../db");
 
-/**
- * ✅ Current Stock API
- * Fetches product-wise stock directly from product_master table
- */
+/* ======================================
+ 📦 CURRENT STOCK — PRODUCT MASTER ভিত্তিক
+====================================== */
 router.get("/", async (req, res) => {
   try {
     const [rows] = await db.query(`
       SELECT 
         id AS product_id,
         name AS product_name,
-        hsn_code AS hsn,
-        gst_rate AS gst,
-        stock AS qty,
-        purchase_price AS purchase_rate,
-        mrp_price AS mrp,
-        NULL AS batch,
-        NULL AS expiry
+        IFNULL(hsn_code, '-') AS hsn,
+        IFNULL(gst_rate, 0) AS gst,
+        IFNULL(purchase_price, 0) AS purchase_rate,
+        IFNULL(mrp_price, 0) AS mrp,
+        IFNULL(stock, 0) AS qty
       FROM product_master
       ORDER BY name ASC
     `);
@@ -28,12 +25,10 @@ router.get("/", async (req, res) => {
       id: r.product_id,
       name: r.product_name || "-",
       hsn: r.hsn || "-",
-      gst: Number(r.gst || 0),
-      qty: Number(r.qty || 0),
-      batch: r.batch || "-",
-      purchase_rate: Number(r.purchase_rate || 0),
-      mrp: Number(r.mrp || 0),
-      expiry: r.expiry || "—",
+      gst: Number(r.gst) || 0,
+      qty: Number(r.qty) || 0,
+      purchase_rate: Number(r.purchase_rate) || 0,
+      mrp: Number(r.mrp) || 0,
     }));
 
     res.json(formatted);

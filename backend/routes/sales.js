@@ -2,6 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../db");
+const { updateStockAfterSale } = require("./stock");
 
 /* ======================================
  🧾 1️⃣ SAVE NEW SALE (Invoice + Items)
@@ -18,8 +19,6 @@ router.post("/", async (req, res) => {
       paid_amount,
       due_amount,
       total_amount,
-      discount = 0,
-      discount_type = "flat",
       items,
     } = req.body;
 
@@ -41,8 +40,8 @@ router.post("/", async (req, res) => {
     // 🔹 Insert into sales table
     const [result] = await connection.query(
       `INSERT INTO sales 
-       (invoice_number, customer_id, date, bill_type, payment_status, payment_mode, discount, discount_type, paid_amount, due_amount, total, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+       (invoice_number, customer_id, date, bill_type, payment_status, payment_mode, paid_amount, due_amount, total, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
       [
         invoiceNumber,
         customer_id,
@@ -50,8 +49,6 @@ router.post("/", async (req, res) => {
         bill_type,
         payment_status,
         payment_mode,
-        discount,
-        discount_type,
         paid_amount,
         due_amount,
         total_amount,
@@ -60,51 +57,62 @@ router.post("/", async (req, res) => {
 
     const saleId = result.insertId;
 
-    // 🔹 Insert sale items
+    // 🔹 Insert sale items (without updating stock yet)
     for (const it of items) {
       await connection.query(
         `INSERT INTO sales_items 
-         (sale_id, medicine_id, product_name, hsn, batch, expiry_date, unit, qty, rate, mrp, gst, disc, amount)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (sale_id, medicine_id, product_name, hsn, batch, expiry_date, unit, qty, rate, mrp, gst, disc, amount, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
         [
           saleId,
           it.medicine_id,
           it.product_name,
-          it.hsn,
-          it.batch_no,
+          it.hsn || "",
+          it.batch_no || "",
           it.expiry_date || null,
-          it.pack || null,
+          it.unit,
           it.quantity,
           it.price,
           it.mrp_price,
           it.gst_rate,
-          it.discount,
+          it.disc || 0,
           it.quantity * it.price,
         ]
       );
+    }
 
-      // 🔹 Update stock
+    // ✅ Update stock batch-wise (purchase_items)
+    await updateStockAfterSale(connection, items);
+
+    // ✅ Update total stock in product_master
+    for (const it of items) {
       await connection.query(
-        `UPDATE purchase_items 
-         SET sold_qty = sold_qty + ? 
-         WHERE medicine_id = ? AND batch_no = ? LIMIT 1`,
-        [it.quantity, it.medicine_id, it.batch_no]
+        `UPDATE product_master 
+         SET stock = GREATEST(stock - ?, 0)
+         WHERE id = ?`,
+        [it.quantity, it.medicine_id]
       );
     }
 
+    // ✅ Commit transaction
     await connection.commit();
-    res.json({ success: true, sale_id: saleId, invoice_number: invoiceNumber });
+
+    res.json({
+      success: true,
+      sale_id: saleId,
+      invoice_number: invoiceNumber,
+    });
   } catch (err) {
     await connection.rollback();
     console.error("❌ Sale Save Error:", err);
-    res.status(500).json({ error: "Failed to save sale" });
+    res.status(500).json({ error: err.message || "Failed to save sale" });
   } finally {
     connection.release();
   }
 });
 
 /* ======================================
- 🧾 2️⃣ FETCH ALL SALES (with Filters)
+ 🧾 2️⃣ FETCH ALL SALES (List)
 ====================================== */
 router.get("/", async (req, res) => {
   try {
@@ -120,8 +128,6 @@ router.get("/", async (req, res) => {
         s.payment_mode,
         c.name AS customer_name,
         s.total, 
-        s.discount,
-        s.discount_type,
         s.paid_amount, 
         s.due_amount, 
         s.payment_status
@@ -132,19 +138,16 @@ router.get("/", async (req, res) => {
 
     const params = [];
 
-    // 🔍 Search (invoice or customer name)
     if (q) {
       query += ` AND (s.invoice_number LIKE ? OR c.name LIKE ?)`;
       params.push(`%${q}%`, `%${q}%`);
     }
 
-    // 💳 Payment Status filter
     if (status) {
       query += ` AND s.payment_status = ?`;
       params.push(status);
     }
 
-    // 📅 Date range filter
     if (from && to) {
       query += ` AND DATE(s.date) BETWEEN ? AND ?`;
       params.push(from, to);
@@ -161,7 +164,7 @@ router.get("/", async (req, res) => {
 });
 
 /* ======================================
- 🧾 3️⃣ FETCH SINGLE SALE (for Invoice)
+ 🧾 3️⃣ FETCH SINGLE SALE (Invoice)
 ====================================== */
 router.get("/:id", async (req, res) => {
   try {
@@ -217,7 +220,7 @@ router.get("/:id", async (req, res) => {
 });
 
 /* ======================================
- 🧾 4️⃣ DELETE A SALE (Optional)
+ 🧾 4️⃣ DELETE SALE (Revert Stock)
 ====================================== */
 router.delete("/:id", async (req, res) => {
   const { id } = req.params;
@@ -226,6 +229,21 @@ router.delete("/:id", async (req, res) => {
   try {
     await connection.beginTransaction();
 
+    // ✅ Get sale items before delete
+    const [items] = await connection.query(
+      `SELECT medicine_id, qty FROM sales_items WHERE sale_id = ?`,
+      [id]
+    );
+
+    // ✅ Restore product_master stock
+    for (const it of items) {
+      await connection.query(
+        `UPDATE product_master SET stock = stock + ? WHERE id = ?`,
+        [it.qty, it.medicine_id]
+      );
+    }
+
+    // ✅ Delete sale records
     await connection.query(`DELETE FROM sales_items WHERE sale_id = ?`, [id]);
     await connection.query(`DELETE FROM sales WHERE id = ?`, [id]);
 

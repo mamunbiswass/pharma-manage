@@ -1,6 +1,15 @@
 import React, { useEffect, useState } from "react";
 import API from "../api/axios";
-import { Table, Card, Spinner, Form, Row, Col, Button, Badge } from "react-bootstrap";
+import {
+  Table,
+  Card,
+  Spinner,
+  Form,
+  Row,
+  Col,
+  Button,
+  Badge,
+} from "react-bootstrap";
 import { Download } from "lucide-react";
 
 function CurrentStock() {
@@ -9,11 +18,11 @@ function CurrentStock() {
   const [search, setSearch] = useState("");
   const [filterLow, setFilterLow] = useState(false);
 
-  // ✅ Fetch Stock Data
+  // ✅ Fetch Current Stock (direct from product_master.stock)
   const fetchStock = async () => {
     try {
       setLoading(true);
-      const res = await API.get("/current-stock");
+      const res = await API.get("/current-stock"); // Must return product_master.stock
       const data = Array.isArray(res.data) ? res.data : [];
       setStock(data);
     } catch (err) {
@@ -30,22 +39,28 @@ function CurrentStock() {
 
   // 🔍 Filter Logic
   const filteredStock = stock
-    .filter((item) => Number(item.qty || 0) > 0) // ✅ show only items with stock > 0
+    .filter((item) => Number(item.stock || item.qty || 0) > 0) // ✅ use stock column
     .filter((item) => {
-      const matchesSearch = item.name?.toLowerCase().includes(search.toLowerCase());
-      const matchesLowStock = filterLow ? Number(item.qty || 0) <= 10 : true;
+      const matchesSearch = item.name
+        ?.toLowerCase()
+        .includes(search.toLowerCase());
+      const qty = Number(item.stock || item.qty || 0);
+      const matchesLowStock = filterLow ? qty <= 10 : true;
       return matchesSearch && matchesLowStock;
     });
 
   // 📦 Summary Totals
   const totalProducts = filteredStock.length;
-  const totalQty = filteredStock.reduce((sum, s) => sum + Number(s.qty || 0), 0);
+  const totalQty = filteredStock.reduce(
+    (sum, s) => sum + Number(s.stock || s.qty || 0),
+    0
+  );
   const totalPurchaseValue = filteredStock.reduce(
-    (sum, s) => sum + Number(s.purchase_rate || 0) * Number(s.qty || 0),
+    (sum, s) => sum + Number(s.purchase_price || s.purchase_rate || 0) * Number(s.stock || s.qty || 0),
     0
   );
   const totalMRPValue = filteredStock.reduce(
-    (sum, s) => sum + Number(s.mrp || 0) * Number(s.qty || 0),
+    (sum, s) => sum + Number(s.mrp_price || s.mrp || 0) * Number(s.stock || s.qty || 0),
     0
   );
 
@@ -55,11 +70,11 @@ function CurrentStock() {
       ["Product", "HSN", "GST%", "Qty", "Purchase Rate", "MRP"],
       ...filteredStock.map((s) => [
         s.name,
-        s.hsn,
-        s.gst,
-        s.qty,
-        s.purchase_rate,
-        s.mrp,
+        s.hsn_code || s.hsn || "-",
+        s.gst_rate || s.gst || 0,
+        s.stock || s.qty || 0,
+        s.purchase_price || s.purchase_rate || 0,
+        s.mrp_price || s.mrp || 0,
       ]),
       [],
       ["Summary"],
@@ -75,7 +90,9 @@ function CurrentStock() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `Current_Stock_Report_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.download = `Current_Stock_Report_${new Date()
+      .toISOString()
+      .slice(0, 10)}.csv`;
     link.click();
   };
 
@@ -117,7 +134,8 @@ function CurrentStock() {
             </Col>
             <Col md={4}>
               <p className="fw-semibold text-secondary mt-3">
-                Total Products: <Badge bg="info">{totalProducts}</Badge> | Total Qty:{" "}
+                Total Products:{" "}
+                <Badge bg="info">{totalProducts}</Badge> | Total Qty:{" "}
                 <Badge bg="success">{totalQty}</Badge>
               </p>
             </Col>
@@ -149,17 +167,20 @@ function CurrentStock() {
                 </tr>
               </thead>
               <tbody>
-                {filteredStock.map((s, i) => (
-                  <tr key={s.id || i}>
-                    <td>{i + 1}</td>
-                    <td className="text-start">{s.name}</td>
-                    <td>{s.hsn}</td>
-                    <td>{s.gst}</td>
-                    <td className={s.qty <= 10 ? "text-danger fw-bold" : ""}>{s.qty}</td>
-                    <td>₹{Number(s.purchase_rate || 0).toFixed(2)}</td>
-                    <td>₹{Number(s.mrp || 0).toFixed(2)}</td>
-                  </tr>
-                ))}
+                {filteredStock.map((s, i) => {
+                  const qty = Number(s.stock || s.qty || 0);
+                  return (
+                    <tr key={s.id || i}>
+                      <td>{i + 1}</td>
+                      <td className="text-start">{s.name}</td>
+                      <td>{s.hsn_code || s.hsn || "-"}</td>
+                      <td>{s.gst_rate || s.gst || 0}</td>
+                      <td className={qty <= 10 ? "text-danger fw-bold" : ""}>{qty}</td>
+                      <td>₹{Number(s.purchase_price || s.purchase_rate || 0).toFixed(2)}</td>
+                      <td>₹{Number(s.mrp_price || s.mrp || 0).toFixed(2)}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </Table>
 
@@ -167,9 +188,13 @@ function CurrentStock() {
             <div className="text-end mt-3 border-top pt-3">
               <h6 className="fw-bold text-secondary">
                 Total Purchase Value:{" "}
-                <span className="text-primary">₹{totalPurchaseValue.toFixed(2)}</span> &nbsp;|&nbsp;
-                Total MRP Value:{" "}
-                <span className="text-success">₹{totalMRPValue.toFixed(2)}</span>
+                <span className="text-primary">
+                  ₹{totalPurchaseValue.toFixed(2)}
+                </span>{" "}
+                &nbsp;|&nbsp; Total MRP Value:{" "}
+                <span className="text-success">
+                  ₹{totalMRPValue.toFixed(2)}
+                </span>
               </h6>
             </div>
           </>

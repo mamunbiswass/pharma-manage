@@ -83,11 +83,11 @@ function AddSale() {
       const newItem = {
         medicine_id: med.id,
         name: med.name,
-        product_name: med.name, // ✅ match backend field
+        product_name: med.name,
         batch_no: b.batch_no,
         expiry_date: b.expiry_date,
-        pack: b.pack || "-", // ✅ added pack field
-        hsn: b.hsn || "", // ✅ added HSN
+        pack: b.pack || "-",
+        hsn: b.hsn || "",
         qty: 1,
         mrp: Number(b.mrp) || 0,
         rate: Number(b.purchase_rate) || 0,
@@ -125,10 +125,11 @@ function AddSale() {
 
   const removeItem = (i) => setItems(items.filter((_, idx) => idx !== i));
 
+  // ✅ Totals
   const subtotal = items.reduce((s, it) => s + (it.base || 0), 0);
   const totalDisc = items.reduce((s, it) => s + (it.discount || 0), 0);
   const totalGST = items.reduce((s, it) => s + (it.sgst || 0) + (it.cgst || 0), 0);
-  const grandTotal = items.reduce((s, it) => s + (it.total || 0), 0);
+  const grandTotal = subtotal + totalGST;
 
   // ✅ Auto calculate due
   useEffect(() => {
@@ -136,10 +137,25 @@ function AddSale() {
     setDueAmount(due > 0 ? due.toFixed(2) : 0);
   }, [grandTotal, paidAmount]);
 
-  // ✅ Submit Sale
+  // ✅ Submit Sale (with stock check)
   const handleSubmit = async () => {
     if (!customerId) return showAlert("⚠ Please select a customer!");
     if (items.length === 0) return showAlert("⚠ Add at least one product!");
+
+    // 🔹 Check stock availability before submitting
+    for (const it of items) {
+      try {
+        const res = await API.get(`/stock/check/${it.medicine_id}/${it.batch_no}`);
+        const available = Number(res.data?.available || 0);
+        if (available < it.qty) {
+          return showAlert(
+            `⚠ Insufficient stock for "${it.product_name}". Available: ${available}, Tried: ${it.qty}`
+          );
+        }
+      } catch {
+        return showAlert(`⚠ Failed to verify stock for "${it.product_name}"`);
+      }
+    }
 
     const data = {
       customer_id: customerId,
@@ -161,7 +177,7 @@ function AddSale() {
         price: it.rate,
         mrp_price: it.mrp,
         gst_rate: it.gst_rate,
-        discount: it.disc,
+        disc: it.disc,
       })),
     };
 
@@ -174,7 +190,10 @@ function AddSale() {
       setDueAmount(0);
     } catch (err) {
       console.error("Sale save failed:", err);
-      showAlert("❌ Failed to save sale!");
+      const msg =
+        err.response?.data?.error ||
+        "❌ Failed to save sale! Please check stock or data.";
+      showAlert(msg);
     }
   };
 
@@ -210,7 +229,10 @@ function AddSale() {
           <Row className="mb-4">
             <Col md={4}>
               <Form.Label>👤 Customer</Form.Label>
-              <Form.Select value={customerId} onChange={(e) => setCustomerId(e.target.value)}>
+              <Form.Select
+                value={customerId}
+                onChange={(e) => setCustomerId(e.target.value)}
+              >
                 <option value="">-- Select Customer --</option>
                 {customers.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -221,7 +243,10 @@ function AddSale() {
             </Col>
             <Col md={4}>
               <Form.Label>📅 Date</Form.Label>
-              <Form.Select value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)}>
+              <Form.Select
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+              >
                 {dateOptions.map((opt) => (
                   <option key={opt.value} value={opt.value}>
                     {opt.label} — {opt.value}
@@ -231,7 +256,10 @@ function AddSale() {
             </Col>
             <Col md={4}>
               <Form.Label>Bill Type</Form.Label>
-              <Form.Select value={billType} onChange={(e) => setBillType(e.target.value)}>
+              <Form.Select
+                value={billType}
+                onChange={(e) => setBillType(e.target.value)}
+              >
                 <option value="Cash">Cash</option>
                 <option value="Credit">Credit</option>
               </Form.Select>
@@ -242,7 +270,10 @@ function AddSale() {
           <Row className="mb-4">
             <Col md={3}>
               <Form.Label>Payment Status</Form.Label>
-              <Form.Select value={paymentStatus} onChange={(e) => setPaymentStatus(e.target.value)}>
+              <Form.Select
+                value={paymentStatus}
+                onChange={(e) => setPaymentStatus(e.target.value)}
+              >
                 <option value="Paid">Paid</option>
                 <option value="Partial">Partial</option>
                 <option value="Unpaid">Unpaid</option>
@@ -250,7 +281,10 @@ function AddSale() {
             </Col>
             <Col md={3}>
               <Form.Label>Payment Mode</Form.Label>
-              <Form.Select value={paymentMode} onChange={(e) => setPaymentMode(e.target.value)}>
+              <Form.Select
+                value={paymentMode}
+                onChange={(e) => setPaymentMode(e.target.value)}
+              >
                 <option value="Cash">Cash</option>
                 <option value="Card">Card</option>
                 <option value="UPI">UPI</option>
@@ -282,12 +316,27 @@ function AddSale() {
                 placeholder="Type medicine name..."
               />
               {loadingSearch && (
-                <Spinner animation="border" size="sm" className="position-absolute end-0 top-50 me-3" />
+                <Spinner
+                  animation="border"
+                  size="sm"
+                  className="position-absolute end-0 top-50 me-3"
+                />
               )}
               {filteredMeds.length > 0 && (
-                <ListGroup className="position-absolute w-100" style={{ zIndex: 1000, maxHeight: "220px", overflowY: "auto" }}>
+                <ListGroup
+                  className="position-absolute w-100"
+                  style={{
+                    zIndex: 1000,
+                    maxHeight: "220px",
+                    overflowY: "auto",
+                  }}
+                >
                   {filteredMeds.map((m) => (
-                    <ListGroup.Item key={m.id} action onClick={() => handleSelect(m)}>
+                    <ListGroup.Item
+                      key={m.id}
+                      action
+                      onClick={() => handleSelect(m)}
+                    >
                       {m.name} — ₹{m.sale_price}
                     </ListGroup.Item>
                   ))}
@@ -355,7 +404,11 @@ function AddSale() {
                       <td>{it.gst_rate}%</td>
                       <td className="fw-bold text-end">₹{it.total.toFixed(2)}</td>
                       <td>
-                        <Button size="sm" variant="outline-danger" onClick={() => removeItem(i)}>
+                        <Button
+                          size="sm"
+                          variant="outline-danger"
+                          onClick={() => removeItem(i)}
+                        >
                           ❌
                         </Button>
                       </td>
@@ -367,9 +420,11 @@ function AddSale() {
               {/* Totals */}
               <div className="text-end mt-3 border-top pt-3">
                 <p>Subtotal: ₹{subtotal.toFixed(2)}</p>
-                <p>Discount: ₹{totalDisc.toFixed(2)}</p>
+                <p>Total Product Discount: ₹{totalDisc.toFixed(2)}</p>
                 <p>GST: ₹{totalGST.toFixed(2)}</p>
-                <h5 className="fw-bold text-success">Grand Total: ₹{grandTotal.toFixed(2)}</h5>
+                <h5 className="fw-bold text-success">
+                  Grand Total: ₹{grandTotal.toFixed(2)}
+                </h5>
                 <Button variant="primary" size="lg" onClick={handleSubmit}>
                   💾 Save Sale
                 </Button>
@@ -396,7 +451,9 @@ function AddSale() {
           delay={3000}
           autohide
         >
-          <Toast.Body className="text-white fw-semibold">{toastMessage}</Toast.Body>
+          <Toast.Body className="text-white fw-semibold">
+            {toastMessage}
+          </Toast.Body>
         </Toast>
       </ToastContainer>
     </Container>

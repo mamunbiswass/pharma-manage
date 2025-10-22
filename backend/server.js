@@ -1,5 +1,6 @@
 /**
  * 🚀 Pharmacy Management Server — FINAL STABLE BUILD
+ * Version: 3.0.0
  */
 
 const express = require("express");
@@ -9,70 +10,75 @@ const path = require("path");
 
 const app = express();
 
-// ================= MIDDLEWARE =================
+// ================================================
+// 🧩 MIDDLEWARE SETUP
+// ================================================
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-// Static folder for uploads
+// Static folder for uploaded files
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// ================= ROUTE IMPORTS =================
-const productMasterRoutes = require("./routes/productMaster");
+// ================================================
+// 📦 ROUTE IMPORTS
+// ================================================
 const loginRoute = require("./routes/login");
-const salesRoute = require("./routes/sales");
+const productMasterRoutes = require("./routes/productMaster");
 const categoriesRoute = require("./routes/categories");
-const suppliersRoute = require("./routes/suppliers");
-const customersRoute = require("./routes/customers");
-const businessRoute = require("./routes/business");
-const purchaseBillsRoute = require("./routes/purchaseBills");
-const invoiceSettingsRoute = require("./routes/invoiceSettings");
-const returnsRoute = require("./routes/returns");
-const retailersRoute = require("./routes/retailers");
-const retailerProductsRoute = require("./routes/retailerProducts");
-const retailerOrdersRoute = require("./routes/retailerOrders");
 const manufacturersRoute = require("./routes/manufacturers");
 const unitRoutes = require("./routes/units");
-const dashboardRoute = require("./routes/dashboard");
-const promoRoute = require("./routes/promo");
-const adminRetailersRoute = require("./routes/adminRetailers");
+
+const suppliersRoute = require("./routes/suppliers");
+const customersRoute = require("./routes/customers");
+const purchaseBillsRoute = require("./routes/purchaseBills");
+const returnsRoute = require("./routes/returns");
+const businessRoute = require("./routes/business");
+const invoiceSettingsRoute = require("./routes/invoiceSettings");
+const salesRoute = require("./routes/sales");
+
 const stockRoute = require("./routes/stock");
 const currentStockRoute = require("./routes/currentStock");
 const lowStockRoutes = require("./routes/lowStock");
 
-// const expiryStockRoutes = require("./routes/expiryStock++++");
+const dashboardRoute = require("./routes/dashboard");
+const promoRoute = require("./routes/promo");
 
-// ================= REGISTER ROUTES =================
+const retailersRoute = require("./routes/retailers");
+const retailerProductsRoute = require("./routes/retailerProducts");
+const retailerOrdersRoute = require("./routes/retailerOrders");
+const adminRetailersRoute = require("./routes/adminRetailers");
 
-// 🔐 Auth & Admin
+// const expiryStockRoutes = require("./routes/expiryStock"); // optional if added later
+
+// ================================================
+// 🧾 ROUTE REGISTRATION
+// ================================================
+
+// 🔐 Authentication & Admin
 app.use("/api", loginRoute);
 app.use("/api/admin/retailers", adminRetailersRoute);
 
-// 🏭 Product & Inventory
+// 🏭 Product & Inventory Management
 app.use("/api/product_master", productMasterRoutes);
 app.use("/api/categories", categoriesRoute);
 app.use("/api/manufacturers", manufacturersRoute);
 app.use("/api/units", unitRoutes);
-app.use("/api/stock", stockRoute);
-app.use("/api/current-stock", currentStockRoute);
+app.use("/api/stock", stockRoute); // handles batch-wise check & stock update
+app.use("/api/current-stock", currentStockRoute); // summary stock view
 app.use("/api/low-stock", lowStockRoutes);
+// app.use("/api/expiry-stock", expiryStockRoutes); // (if implemented later)
 
-// app.use("/api/expiry-stock", expiryStockRoutes);
-
-
-// 🧾 Billing & Transactions
+// 💳 Purchases, Sales & Transactions
 app.use("/api/business", businessRoute);
 app.use("/api/purchase-bills", purchaseBillsRoute);
 app.use("/api/returns", returnsRoute);
 app.use("/api/suppliers", suppliersRoute);
 app.use("/api/customers", customersRoute);
 app.use("/api/sales", salesRoute);
-// app.use("/api/invoice-settings", invoiceSettingsRoute);
-app.use("/api/invoice-settings", require("./routes/invoiceSettings"));
+app.use("/api/invoice-settings", invoiceSettingsRoute);
 
-
-
-// 📊 Dashboard
+// 📊 Dashboard Analytics
 app.use("/api/dashboard", dashboardRoute);
 
 // 🛍 Retailer Zone
@@ -83,31 +89,57 @@ app.use("/api/retailer/orders", retailerOrdersRoute);
 // 🎁 Promotions
 app.use("/api/promo", promoRoute);
 
-// ================= FILE UPLOAD =================
+// ================================================
+// 🖼 FILE UPLOAD CONFIGURATION (Logo / Images)
+// ================================================
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, "uploads/"),
-  filename: (req, file, cb) =>
-    cb(null, Date.now() + path.extname(file.originalname)),
+  filename: (req, file, cb) => {
+    const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(
+      file.originalname
+    )}`;
+    cb(null, uniqueName);
+  },
 });
-const upload = multer({ storage });
 
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB limit
+  fileFilter: (req, file, cb) => {
+    const allowed = [".png", ".jpg", ".jpeg", ".webp"];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (!allowed.includes(ext)) {
+      return cb(new Error("Only image files are allowed!"));
+    }
+    cb(null, true);
+  },
+});
+
+// ✅ Upload Route
 app.post("/api/upload-logo", upload.single("logo"), (req, res) => {
   if (!req.file) return res.status(400).json({ error: "No file uploaded" });
   res.json({
+    success: true,
     filename: req.file.filename,
     url: `/uploads/${req.file.filename}`,
   });
 });
 
-// ================= 404 HANDLER =================
+// ================================================
+// ⚠️ 404 HANDLER
+// ================================================
 app.use((req, res) => {
   console.warn("❌ Route not found:", req.originalUrl);
-  res.status(404).json({ error: "Route not found" });
+  res.status(404).json({ error: "API endpoint not found" });
 });
 
-// ================= START SERVER =================
+// ================================================
+// 🚀 START SERVER
+// ================================================
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`✅ Server running successfully on port ${PORT}`);
+  console.log("=====================================");
+  console.log(`✅ Pharmacy Server running on port: ${PORT}`);
   console.log(`🌐 Base URL: http://localhost:${PORT}/api`);
+  console.log("=====================================");
 });
