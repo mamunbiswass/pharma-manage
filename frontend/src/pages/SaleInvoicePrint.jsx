@@ -176,16 +176,17 @@ function SaleInvoicePrint() {
 
   // ✅ UI
   return (
-    <Card className="mt-4 p-4 invoice-print-area">
-      <div className="text-end mb-3">
+    <>
+    <div className="text-end mb-3">
         <Button className="no-print" variant="success" onClick={() => window.print()}>
           🖨 Print / Save
         </Button>
       </div>
+    <Card className="mt-2 p-4 invoice-print-area">      
 
       {/* ===== Header ===== */}
-      <Row className="mb-4 align-items-center">
-        <Col md={5}>
+      <Row className="mb-2 ">
+        <Col md={5} className="business_info">
           {!!settings.show_logo && settings.logo && (
             <Image
               src={`http://localhost:5000/uploads/logo/${settings.logo}`}
@@ -196,7 +197,7 @@ function SaleInvoicePrint() {
           )}
           <h5 className="fw-bold">{business.name}</h5>
           <p>{business.address}</p>
-          <p>📞 {business.phone}</p>
+          <p>Mob: {business.phone}, Email: {business.email}</p>
           <p>GSTIN: {business.tax_number}</p>
         </Col>
 
@@ -204,29 +205,31 @@ function SaleInvoicePrint() {
           {!!settings.show_qr && (
             <>
               <h6 className="fw-bold mb-0">Scan & Pay</h6>
-              <QRCodeCanvas value={qrData} size={150} includeMargin />
+              <QRCodeCanvas value={qrData} size={120} includeMargin />
             </>
           )}
         </Col>
 
-        <Col md={5} className="text-end">
-          <h5 className="fw-bold">Customer Info</h5>
-          <p><strong>Name:</strong> {sale.customer_name}</p>
-          <p><strong>Phone:</strong> {sale.phone || "—"}</p>
+        <Col md={5} className="text-end customer_info">
+          <h5 className="fw-bold">{sale.customer_name}</h5>
           <p><strong>Address:</strong> {sale.address || "—"}</p>
-          <p>
+          <p><strong>Phone:</strong> {sale.phone || "—"}</p>  
+         
+        </Col>
+      </Row>
+      <div className="d-flex justify-content-between align-items-center">
+           <h5 className="fw-bold">Invoice No. #{sale.invoice_number}</h5>
+           <h4 className="fw-bold text-center mb-3">SALE INVOICE</h4>
+           <p>
             <strong>Date:</strong> {formatDate(sale.created_at)}{" "}
             <strong>Time:</strong> {new Date(sale.created_at).toLocaleTimeString()}
           </p>
-          <h5 className="fw-bold">🧾 Invoice #{sale.invoice_number}</h5>
-        </Col>
-      </Row>
-
-      <h3 className="fw-bold text-center mb-3">SALE INVOICE</h3>
+      </div>
+      
 
       {/* ===== Items Table ===== */}
       <Table bordered hover responsive className="align-middle text-center">
-        <thead className="table-dark">
+        <thead className="table-light">
           <tr>
             <th>SN</th>
             <th>Product</th>
@@ -276,11 +279,11 @@ function SaleInvoicePrint() {
       </Table>
 
       {/* ===== GST + Total Summary ===== */}
-      <Row className="mt-4">
+      <Row className="mt-2">
         <Col md={8}>
           <h6 className="fw-bold">GST Summary</h6>
-          <Table bordered size="sm" className="text-center">
-            <thead className="table-dark">
+          <Table bordered size="sm" className="text-center gst_summary">
+            <thead className="table-light">
               <tr>
                 <th>Class</th>
                 <th>Taxable</th>
@@ -290,38 +293,61 @@ function SaleInvoicePrint() {
               </tr>
             </thead>
             <tbody>
-              {Object.keys(gstSummary).length > 0 ? (
-                <>
-                  {Object.keys(gstSummary).map((k) => {
-                    const g = gstSummary[k];
-                    const totalGst = safeNum(g.sgst) + safeNum(g.cgst);
-                    return (
-                      <tr key={k}>
-                        <td>{k}</td>
-                        <td>{g.taxable.toFixed(2)}</td>
-                        <td>{g.sgst.toFixed(2)}</td>
-                        <td>{g.cgst.toFixed(2)}</td>
-                        <td>{totalGst.toFixed(2)}</td>
-                      </tr>
-                    );
-                  })}
-                </>
-              ) : (
-                <tr>
-                  <td colSpan="5" className="text-center text-muted">
-                    No GST data available
-                  </td>
-                </tr>
-              )}
+              {["5%", "12%", "18%", "28%"].map((rate) => {
+                const g = gstSummary[rate] || { taxable: 0, sgst: 0, cgst: 0 };
+                const totalGst = safeNum(g.sgst) + safeNum(g.cgst);
+                return (
+                  <tr key={rate}>
+                    <td>{rate}</td>
+                    <td>{g.taxable.toFixed(2)}</td>
+                    <td>{g.sgst.toFixed(2)}</td>
+                    <td>{g.cgst.toFixed(2)}</td>
+                    <td>{totalGst.toFixed(2)}</td>
+                  </tr>
+                );
+              })}
+
+              {/* ✅ Total Row */}
+              <tr className="fw-bold bg-light">
+                <td>Total</td>
+                <td>
+                  {["5%", "12%", "18%", "28%"]
+                    .reduce((sum, rate) => sum + safeNum(gstSummary[rate]?.taxable || 0), 0)
+                    .toFixed(2)}
+                </td>
+                <td>
+                  {["5%", "12%", "18%", "28%"]
+                    .reduce((sum, rate) => sum + safeNum(gstSummary[rate]?.sgst || 0), 0)
+                    .toFixed(2)}
+                </td>
+                <td>
+                  {["5%", "12%", "18%", "28%"]
+                    .reduce((sum, rate) => sum + safeNum(gstSummary[rate]?.cgst || 0), 0)
+                    .toFixed(2)}
+                </td>
+                <td>
+                  {["5%", "12%", "18%", "28%"]
+                    .reduce(
+                      (sum, rate) =>
+                        sum +
+                        safeNum(gstSummary[rate]?.sgst || 0) +
+                        safeNum(gstSummary[rate]?.cgst || 0),
+                      0
+                    )
+                    .toFixed(2)}
+                </td>
+              </tr>
             </tbody>
           </Table>
+
+
         </Col>
 
         {/* ✅ Totals Section */}
         <Col md={4} className="text-end sub_total">
           <div className="border p-3 bg-light rounded">
             <p className="mb-1">
-              <strong>Subtotal (After Discount):</strong> ₹{subtotal.toFixed(2)}
+              <strong>Subtotal:</strong> ₹{subtotal.toFixed(2)}
             </p>
             <p className="mb-1">
               <strong>Total Discount:</strong> ₹{totalDiscount.toFixed(2)}
@@ -335,7 +361,7 @@ function SaleInvoicePrint() {
             <p className="mb-2">
               <strong>Due:</strong> ₹{safeNum(sale.due_amount).toFixed(2)}
             </p>
-            <h5 className="fw-bold text-success border-top pt-2 mt-2">
+            <h5 className="fw-bold border-top pt-2 mt-2">
               Grand Total: ₹{grandTotal.toFixed(2)}
             </h5>
           </div>
@@ -343,14 +369,20 @@ function SaleInvoicePrint() {
       </Row>
 
       {/* ===== Footer ===== */}
-      <div className="mt-4 border-top pt-3">
-        <p>
-          <strong>In Words:</strong> {amountInWords(safeNum(sale.total))}
-        </p>
-        <p className="small">{settings.footer_note}</p>
-        <p className="fw-bold text-end">{settings.signature_text}</p>
+      <div className="mt-4 d-flex justify-content-between border-top pt-3">
+        <div className="in_words">
+          <p className="mb-0">
+            <strong>In Words:</strong> {amountInWords(safeNum(sale.total))}
+          </p>
+          <p className="small mb-0">{settings.footer_note}</p>
+        </div>       
+        <div className="sig_text">
+          <p className="fw-bold text-end mb-0 mt-4 me-5">{settings.signature_text}</p>
+        </div>
       </div>
     </Card>
+    </>
+    
   );
 }
 

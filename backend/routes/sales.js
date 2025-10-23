@@ -1,4 +1,3 @@
-// routes/sales.js
 const express = require("express");
 const router = express.Router();
 const db = require("../db");
@@ -25,6 +24,33 @@ router.post("/", async (req, res) => {
     if (!items || items.length === 0)
       return res.status(400).json({ error: "No items provided" });
 
+    // ✅ STEP 1: Stock validation before starting transaction
+    for (const it of items) {
+      const [stockRows] = await db.query(
+        `
+        SELECT 
+          IFNULL(SUM(pi.quantity - pi.sold_qty), 0) AS available_batch_stock,
+          pm.stock AS main_stock
+        FROM product_master pm
+        LEFT JOIN purchase_items pi ON pm.id = pi.medicine_id
+        WHERE pm.id = ?
+        `,
+        [it.medicine_id]
+      );
+
+      const available =
+        Number(stockRows[0].available_batch_stock || 0) > 0
+          ? Number(stockRows[0].available_batch_stock)
+          : Number(stockRows[0].main_stock || 0);
+
+      if (available < it.quantity) {
+        return res.status(400).json({
+          error: `❌ Not enough stock for "${it.product_name}". Available: ${available}, Requested: ${it.quantity}`,
+        });
+      }
+    }
+
+    // ✅ STEP 2: Begin Transaction
     await connection.beginTransaction();
 
     // 🔹 Generate unique invoice number
@@ -57,7 +83,7 @@ router.post("/", async (req, res) => {
 
     const saleId = result.insertId;
 
-    // 🔹 Insert sale items (without updating stock yet)
+    // 🔹 Insert sale items
     for (const it of items) {
       await connection.query(
         `INSERT INTO sales_items 
@@ -70,7 +96,7 @@ router.post("/", async (req, res) => {
           it.hsn || "",
           it.batch_no || "",
           it.expiry_date || null,
-          it.unit,
+          it.unit || "-",
           it.quantity,
           it.price,
           it.mrp_price,
@@ -81,20 +107,9 @@ router.post("/", async (req, res) => {
       );
     }
 
-    // ✅ Update stock batch-wise (purchase_items)
+    // ✅ Update stock (batch-wise & main)
     await updateStockAfterSale(connection, items);
 
-    // ✅ Update total stock in product_master
-    for (const it of items) {
-      await connection.query(
-        `UPDATE product_master 
-         SET stock = GREATEST(stock - ?, 0)
-         WHERE id = ?`,
-        [it.quantity, it.medicine_id]
-      );
-    }
-
-    // ✅ Commit transaction
     await connection.commit();
 
     res.json({
@@ -229,13 +244,11 @@ router.delete("/:id", async (req, res) => {
   try {
     await connection.beginTransaction();
 
-    // ✅ Get sale items before delete
     const [items] = await connection.query(
       `SELECT medicine_id, qty FROM sales_items WHERE sale_id = ?`,
       [id]
     );
 
-    // ✅ Restore product_master stock
     for (const it of items) {
       await connection.query(
         `UPDATE product_master SET stock = stock + ? WHERE id = ?`,
@@ -243,7 +256,6 @@ router.delete("/:id", async (req, res) => {
       );
     }
 
-    // ✅ Delete sale records
     await connection.query(`DELETE FROM sales_items WHERE sale_id = ?`, [id]);
     await connection.query(`DELETE FROM sales WHERE id = ?`, [id]);
 

@@ -149,6 +149,7 @@ function AppLayout() {
               <ul className="btn-toggle-nav list-unstyled fw-normal pb-1 small">
                 <li><NavLink className="nav-link ms-4" to="/purchase-bill">New Purchase Bill</NavLink></li>
                 <li><NavLink className="nav-link ms-4" to="/purchase-history">Purchase History</NavLink></li>
+                <li><NavLink className="nav-link ms-4" to="/purchase-return">Purchase Return</NavLink></li>
               </ul>
             )}
           </li>
@@ -164,8 +165,7 @@ function AppLayout() {
                 <li><NavLink className="nav-link ms-4" to="/sale">New Sale</NavLink></li>
                 <li><NavLink className="nav-link ms-4" to="/sales-history">Sales History</NavLink></li>
                 <li><NavLink className="nav-link ms-4" to="/cancelled-sales">Cancelled Sales</NavLink></li>
-                <li><NavLink className="nav-link ms-4" to="/returns">Returns</NavLink></li>
-                
+                <li><NavLink className="nav-link ms-4" to="/sales-return">Sales Return</NavLink></li>
               </ul>
             )}
           </li>
@@ -181,6 +181,7 @@ function AppLayout() {
                 <li><NavLink className="nav-link ms-4" to="/current-stock">Current Stock</NavLink></li>
                 <li><NavLink className="nav-link ms-4" to="/expiry-stock">Expiry Report</NavLink></li>
                 <li><NavLink className="nav-link ms-4" to="/low-stock">Low Stock Alert</NavLink></li>
+                <li><NavLink className="nav-link ms-4" to="/return-dashboard">Return Dashboard</NavLink></li>
               </ul>
             )}
           </li>
@@ -228,39 +229,6 @@ function AppLayout() {
             )}
           </li>
 
-          {/* Retailers */}
-          <li className="nav-item mb-2">
-            <button
-              className="btn btn-toggle align-items-center w-100 d-flex justify-content-between"
-              onClick={() => toggleMenu("retailers")}
-            >
-              <span>
-                <FaUsers className="me-2" />
-                Retailers
-              </span>
-              {activeMenu === "retailers" ? <FaChevronUp /> : <FaChevronDown />}
-            </button>
-            {activeMenu === "retailers" && (
-              <ul className="btn-toggle-nav list-unstyled fw-normal pb-1 small">
-                <li>
-                  <NavLink className="nav-link ms-4" to="/retailers-list">
-                    Retailers List
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink className="nav-link ms-4" to="/pending-approvals">
-                    Pending Approvals
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink className="nav-link ms-4" to="/retailers-orders">
-                    Retailer Orders
-                  </NavLink>
-                </li>
-              </ul>
-            )}
-          </li>
-
           {/* Settings */}
           <li className="nav-item mb-2">
             <button className="btn btn-toggle align-items-center w-100 d-flex justify-content-between" onClick={() => toggleMenu('settings')}>
@@ -271,7 +239,6 @@ function AppLayout() {
               <ul className="btn-toggle-nav list-unstyled fw-normal pb-1 small">
                 <li><NavLink className="nav-link ms-4" to="/businessinfo">Business Info</NavLink></li>
                 <li><NavLink className="nav-link ms-4" to="/invoice-settings">Invoice Settings</NavLink></li>
-                <li><NavLink className="nav-link ms-4" to="/profile-page">Profile</NavLink></li>
               </ul>
             )}
           </li>

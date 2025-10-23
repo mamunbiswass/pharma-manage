@@ -76,17 +76,29 @@ function AddSale() {
 
     try {
       const res = await API.get(`/stock/batches/${med.id}`);
-      const batches = res.data || [];
-      if (!batches.length) return showAlert("⚠ No stock available!");
+      const batches = Array.isArray(res.data) ? res.data : [];
+
+      console.log("📦 Loaded batches:", batches);
+
+      if (!batches.length)
+        return showAlert("⚠ No batch stock found for this product!");
 
       const b = batches[0];
+
+      // ✅ Support for both 'available_qty' and 'quantity'
+      const availableQty =
+        b.available_qty ?? b.quantity ?? 0;
+
+      if (availableQty <= 0)
+        return showAlert("⚠ Stock not available for this product!");
+
       const newItem = {
         medicine_id: med.id,
-        name: med.name,
         product_name: med.name,
-        batch_no: b.batch_no,
+        batch_no: b.batch_no || "-",
         expiry_date: b.expiry_date,
         pack: b.pack || "-",
+        unit: b.pack || "-",
         hsn: b.hsn || "",
         qty: 1,
         mrp: Number(b.mrp) || 0,
@@ -94,6 +106,7 @@ function AddSale() {
         disc: 0,
         gst_rate: Number(b.gst_rate) || 0,
       };
+
       setItems((prev) => [...prev, calculate(newItem)]);
       setSearch("");
       setFilteredMeds([]);
@@ -113,7 +126,6 @@ function AddSale() {
     return { ...item, disc, discount, base, sgst: gstHalf, cgst: gstHalf, total };
   };
 
-  // ✅ Handle row update
   const handleItemChange = (i, field, val) => {
     const updated = [...items];
     updated[i] = calculate({
@@ -131,31 +143,15 @@ function AddSale() {
   const totalGST = items.reduce((s, it) => s + (it.sgst || 0) + (it.cgst || 0), 0);
   const grandTotal = subtotal + totalGST;
 
-  // ✅ Auto calculate due
   useEffect(() => {
     const due = Number(grandTotal) - Number(paidAmount || 0);
     setDueAmount(due > 0 ? due.toFixed(2) : 0);
   }, [grandTotal, paidAmount]);
 
-  // ✅ Submit Sale (with stock check)
+  // ✅ Submit Sale
   const handleSubmit = async () => {
     if (!customerId) return showAlert("⚠ Please select a customer!");
     if (items.length === 0) return showAlert("⚠ Add at least one product!");
-
-    // 🔹 Check stock availability before submitting
-    for (const it of items) {
-      try {
-        const res = await API.get(`/stock/check/${it.medicine_id}/${it.batch_no}`);
-        const available = Number(res.data?.available || 0);
-        if (available < it.qty) {
-          return showAlert(
-            `⚠ Insufficient stock for "${it.product_name}". Available: ${available}, Tried: ${it.qty}`
-          );
-        }
-      } catch {
-        return showAlert(`⚠ Failed to verify stock for "${it.product_name}"`);
-      }
-    }
 
     const data = {
       customer_id: customerId,
@@ -171,6 +167,7 @@ function AddSale() {
         product_name: it.product_name,
         batch_no: it.batch_no,
         pack: it.pack,
+        unit: it.unit,
         hsn: it.hsn,
         expiry_date: it.expiry_date,
         quantity: it.qty,
@@ -192,7 +189,9 @@ function AddSale() {
       console.error("Sale save failed:", err);
       const msg =
         err.response?.data?.error ||
-        "❌ Failed to save sale! Please check stock or data.";
+        err.message ||
+        "❌ Failed to save sale!";
+
       showAlert(msg);
     }
   };
@@ -205,18 +204,6 @@ function AddSale() {
     setToastMessage(msg);
     setToastShow(true);
   };
-
-  // ✅ Date options
-  const getDateOption = (daysAgo) => {
-    const d = new Date();
-    d.setDate(d.getDate() - daysAgo);
-    return d.toISOString().split("T")[0];
-  };
-  const dateOptions = [
-    { label: "Today", value: getDateOption(0) },
-    { label: "Yesterday", value: getDateOption(1) },
-    { label: "2 Days Ago", value: getDateOption(2) },
-  ];
 
   return (
     <Container fluid className="mt-4">
@@ -243,16 +230,11 @@ function AddSale() {
             </Col>
             <Col md={4}>
               <Form.Label>📅 Date</Form.Label>
-              <Form.Select
+              <Form.Control
+                type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-              >
-                {dateOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label} — {opt.value}
-                  </option>
-                ))}
-              </Form.Select>
+              />
             </Col>
             <Col md={4}>
               <Form.Label>Bill Type</Form.Label>
@@ -358,7 +340,6 @@ function AddSale() {
                     <th>HSN</th>
                     <th>Expiry</th>
                     <th>Qty</th>
-                    <th>MRP</th>
                     <th>Rate</th>
                     <th>Disc%</th>
                     <th>GST%</th>
@@ -372,8 +353,8 @@ function AddSale() {
                       <td>{i + 1}</td>
                       <td>{it.product_name}</td>
                       <td>{it.batch_no}</td>
-                      <td>{it.pack || "-"}</td>
-                      <td>{it.hsn || "-"}</td>
+                      <td>{it.unit}</td>
+                      <td>{it.hsn}</td>
                       <td>
                         {it.expiry_date
                           ? new Date(it.expiry_date).toLocaleDateString("en-GB", {
@@ -387,10 +368,11 @@ function AddSale() {
                           type="number"
                           min="1"
                           value={it.qty}
-                          onChange={(e) => handleItemChange(i, "qty", e.target.value)}
+                          onChange={(e) =>
+                            handleItemChange(i, "qty", e.target.value)
+                          }
                         />
                       </td>
-                      <td>{it.mrp.toFixed(2)}</td>
                       <td>{it.rate.toFixed(2)}</td>
                       <td>
                         <Form.Control
@@ -398,7 +380,9 @@ function AddSale() {
                           min="0"
                           max="100"
                           value={it.disc}
-                          onChange={(e) => handleItemChange(i, "disc", e.target.value)}
+                          onChange={(e) =>
+                            handleItemChange(i, "disc", e.target.value)
+                          }
                         />
                       </td>
                       <td>{it.gst_rate}%</td>
@@ -420,7 +404,7 @@ function AddSale() {
               {/* Totals */}
               <div className="text-end mt-3 border-top pt-3">
                 <p>Subtotal: ₹{subtotal.toFixed(2)}</p>
-                <p>Total Product Discount: ₹{totalDisc.toFixed(2)}</p>
+                <p>Total Discount: ₹{totalDisc.toFixed(2)}</p>
                 <p>GST: ₹{totalGST.toFixed(2)}</p>
                 <h5 className="fw-bold text-success">
                   Grand Total: ₹{grandTotal.toFixed(2)}
@@ -434,7 +418,7 @@ function AddSale() {
         </Card.Body>
       </Card>
 
-      {/* Modal */}
+      {/* Alert Modal */}
       <Modal show={modalShow} onHide={() => setModalShow(false)} centered>
         <Modal.Header closeButton>
           <Modal.Title>⚠ Notice</Modal.Title>

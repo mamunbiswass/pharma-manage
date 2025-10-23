@@ -33,6 +33,8 @@ const suppliersRoute = require("./routes/suppliers");
 const customersRoute = require("./routes/customers");
 const purchaseBillsRoute = require("./routes/purchaseBills");
 const returnsRoute = require("./routes/returns");
+const purchaseReturnsRoute = require("./routes/purchaseReturns");
+
 const businessRoute = require("./routes/business");
 const invoiceSettingsRoute = require("./routes/invoiceSettings");
 const salesRoute = require("./routes/sales");
@@ -42,12 +44,8 @@ const currentStockRoute = require("./routes/currentStock");
 const lowStockRoutes = require("./routes/lowStock");
 
 const dashboardRoute = require("./routes/dashboard");
-const promoRoute = require("./routes/promo");
+// const promoRoute = require("./routes/promo");
 
-const retailersRoute = require("./routes/retailers");
-const retailerProductsRoute = require("./routes/retailerProducts");
-const retailerOrdersRoute = require("./routes/retailerOrders");
-const adminRetailersRoute = require("./routes/adminRetailers");
 
 // const expiryStockRoutes = require("./routes/expiryStock"); // optional if added later
 
@@ -57,7 +55,6 @@ const adminRetailersRoute = require("./routes/adminRetailers");
 
 // 🔐 Authentication & Admin
 app.use("/api", loginRoute);
-app.use("/api/admin/retailers", adminRetailersRoute);
 
 // 🏭 Product & Inventory Management
 app.use("/api/product_master", productMasterRoutes);
@@ -73,6 +70,7 @@ app.use("/api/low-stock", lowStockRoutes);
 app.use("/api/business", businessRoute);
 app.use("/api/purchase-bills", purchaseBillsRoute);
 app.use("/api/returns", returnsRoute);
+app.use("/api/purchase-returns", purchaseReturnsRoute);
 app.use("/api/suppliers", suppliersRoute);
 app.use("/api/customers", customersRoute);
 app.use("/api/sales", salesRoute);
@@ -82,12 +80,13 @@ app.use("/api/invoice-settings", invoiceSettingsRoute);
 app.use("/api/dashboard", dashboardRoute);
 
 // 🛍 Retailer Zone
-app.use("/api/retailers", retailersRoute);
-app.use("/api/retailer/products", retailerProductsRoute);
-app.use("/api/retailer/orders", retailerOrdersRoute);
+// app.use("/api/retailers", retailersRoute);
+// app.use("/api/retailer/products", retailerProductsRoute);
+// app.use("/api/retailer/orders", retailerOrdersRoute);
+
 
 // 🎁 Promotions
-app.use("/api/promo", promoRoute);
+// app.use("/api/promo", promoRoute);
 
 // ================================================
 // 🖼 FILE UPLOAD CONFIGURATION (Logo / Images)

@@ -14,25 +14,21 @@ import AddSupplier from "./pages/AddSupplier";
 import BusinessInfo from "./pages/BusinessInfo";
 import PurchaseBill from "./pages/PurchaseBill";
 import PurchaseHistory from "./pages/PurchaseHistory";
-import ProfilePage from "./pages/ProfilePage";
 import CancelledSales from "./pages/CancelledSales";
-import PendingApprovals from "./pages/retailers/PendingApprovals";
-import RetailersList from "./pages/retailers/RetailersList";
 import LowStockMedicines from "./pages/LowStockMedicines";
 import ManufacturerManagement from "./pages/ManufacturerManagement";
 import UnitManagement from "./pages/UnitManagement";
 import CustomerList from "./pages/CustomerList";
-// import InvoicePrint from "./pages/InvoicePrint";
 import EditProduct from "./pages/EditMedicine";
 import PurchaseInvoicePrint from "./pages/PurchaseInvoicePrint";
 import CurrentStock from "./pages/CurrentStock";
 import ExpiryStock from "./pages/ExpiryStock";
 import LowStock from "./pages/LowStock";
 import InvoiceSettings from "./pages/InvoiceSettings"
+import SalesReturn from "./pages/SalesReturn";
+import PurchaseReturn from "./pages/PurchaseReturn";
+import ReturnDashboard from "./pages/ReturnDashboard";
 
-
-
-import RetailerApp from "./retailer/pages/RetailerApp";
 
 // ✅ Protected Route
 const PrivateRoute = ({ children }) => {
@@ -66,11 +62,11 @@ function App() {
         <Route path="current-stock" element={<CurrentStock/>}/>
         <Route path="expiry-stock" element={<ExpiryStock/>}/>
         <Route path="low-stock" element={<LowStock/>}/>
-
-        {/* <Route path="invoice/:id" element={<ViewInvoice />} /> */}
+        <Route path="/sales-return" element={<SalesReturn />} />
+        <Route path="/purchase-return" element={<PurchaseReturn/>}/>
+        <Route path="/return-dashboard" element={<ReturnDashboard />} />
         
         <Route path="/edit-product/:id" element={<EditProduct />} />
-
         <Route path="category-management" element={<CategoryManagement />} />
         <Route path="unit-management" element={<UnitManagement />} />
         <Route path="manufacturer-management" element={<ManufacturerManagement />} />
@@ -82,21 +78,13 @@ function App() {
         <Route path="purchase-history" element={<PurchaseHistory />} />        
         <Route path="purchase-invoice/:id" element={<PurchaseInvoicePrint />} />
         <Route path="invoice-settings" element={<InvoiceSettings/>}/>
-        <Route path="profile-page" element={<ProfilePage />} />
         <Route path="cancelled-sales" element={<CancelledSales />} />
-        <Route path="pending-approvals" element={<PendingApprovals />} />
-        <Route path="retailers-list" element={<RetailersList />} />
         <Route path="low-stock" element={<LowStockMedicines />} />        
-        {/* <Route path="/invoice/:id" element={<InvoicePrint />} /> */}
+   
         
 
       </Route>
 
-      {/* Retailer routes */}
-      <Route path="/retailer/*" element={<RetailerApp />} />
-
-      {/* Fallback Route */}
-      <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );
 }

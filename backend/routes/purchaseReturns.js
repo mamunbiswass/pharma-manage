@@ -1,15 +1,15 @@
-// routes/returns.js
+// routes/purchaseReturns.js
 const express = require("express");
 const router = express.Router();
 const db = require("../db");
 
 /* ======================================
- 🔁 1️⃣ SAVE SALES RETURN
+ 🔁 1️⃣ SAVE PURCHASE RETURN
 ====================================== */
 router.post("/", async (req, res) => {
   const connection = await db.getConnection();
   try {
-    const { sale_id, customer_id, date, reason, items, remarks } = req.body;
+    const { supplier_id, date, reason, items, remarks } = req.body;
 
     if (!items || items.length === 0)
       return res.status(400).json({ error: "No items provided for return" });
@@ -19,11 +19,10 @@ router.post("/", async (req, res) => {
     // 🔹 Insert into returns table
     const [retResult] = await connection.query(
       `INSERT INTO returns 
-       (return_type, reference_no, customer_id, date, reason, total, remarks, created_at)
-       VALUES ('sale', ?, ?, ?, ?, ?, ?, NOW())`,
+       (return_type, supplier_id, date, reason, total, remarks, created_at)
+       VALUES ('purchase', ?, ?, ?, ?, ?, NOW())`,
       [
-        sale_id || null,
-        customer_id || null,
+        supplier_id || null,
         date,
         reason || "",
         items.reduce((sum, it) => sum + Number(it.amount || 0), 0),
@@ -33,7 +32,7 @@ router.post("/", async (req, res) => {
 
     const returnId = retResult.insertId;
 
-    // 🔹 Insert return items
+    // 🔹 Insert return items & update stock
     for (const it of items) {
       await connection.query(
         `INSERT INTO return_items 
@@ -50,18 +49,18 @@ router.post("/", async (req, res) => {
         ]
       );
 
-      // 🔹 Update product_master stock (increase)
+      // 🔹 Reduce product_master stock
       await connection.query(
         `UPDATE product_master 
-         SET stock = stock + ? 
+         SET stock = GREATEST(stock - ?, 0)
          WHERE id = ?`,
         [it.qty, it.medicine_id]
       );
 
-      // 🔹 Reduce sold_qty from purchase_items
+      // 🔹 Reduce purchase_items quantity
       await connection.query(
         `UPDATE purchase_items 
-         SET sold_qty = GREATEST(sold_qty - ?, 0)
+         SET quantity = GREATEST(quantity - ?, 0)
          WHERE medicine_id = ? AND batch_no = ? 
          LIMIT 1`,
         [it.qty, it.medicine_id, it.batch_no]
@@ -69,18 +68,18 @@ router.post("/", async (req, res) => {
     }
 
     await connection.commit();
-    res.json({ success: true, message: "Return saved successfully" });
+    res.json({ success: true, message: "Purchase Return saved successfully" });
   } catch (err) {
     await connection.rollback();
-    console.error("❌ Return Save Error:", err);
-    res.status(500).json({ error: err.message || "Failed to save return" });
+    console.error("❌ Purchase Return Save Error:", err);
+    res.status(500).json({ error: err.message || "Failed to save purchase return" });
   } finally {
     connection.release();
   }
 });
 
 /* ======================================
- 🔁 2️⃣ FETCH ALL RETURNS
+ 🔁 2️⃣ FETCH ALL PURCHASE RETURNS
 ====================================== */
 router.get("/", async (req, res) => {
   try {
@@ -88,32 +87,30 @@ router.get("/", async (req, res) => {
       SELECT 
         r.id, 
         r.date, 
-        r.return_type, 
-        r.reference_no, 
         r.total, 
         r.reason, 
-        c.name AS customer_name
+        s.name AS supplier_name
       FROM returns r
-      LEFT JOIN customers c ON r.customer_id = c.id
-      WHERE r.return_type = 'sale'
+      LEFT JOIN suppliers s ON r.supplier_id = s.id
+      WHERE r.return_type = 'purchase'
       ORDER BY r.id DESC
     `);
     res.json(rows);
   } catch (err) {
-    console.error("❌ Fetch Returns Error:", err);
-    res.status(500).json({ error: "Failed to fetch returns" });
+    console.error("❌ Fetch Purchase Returns Error:", err);
+    res.status(500).json({ error: "Failed to fetch purchase returns" });
   }
 });
 
 /* ======================================
- 🔁 3️⃣ FETCH SINGLE RETURN DETAILS
+ 🔁 3️⃣ FETCH SINGLE PURCHASE RETURN DETAILS
 ====================================== */
 router.get("/:id", async (req, res) => {
   try {
     const [header] = await db.query(
-      `SELECT r.*, c.name AS customer_name, c.phone 
+      `SELECT r.*, s.name AS supplier_name, s.phone 
        FROM returns r 
-       LEFT JOIN customers c ON r.customer_id = c.id
+       LEFT JOIN suppliers s ON r.supplier_id = s.id
        WHERE r.id = ?`,
       [req.params.id]
     );
@@ -127,13 +124,13 @@ router.get("/:id", async (req, res) => {
 
     res.json({ return: header[0], items });
   } catch (err) {
-    console.error("❌ Fetch Single Return Error:", err);
-    res.status(500).json({ error: "Failed to fetch return" });
+    console.error("❌ Fetch Single Purchase Return Error:", err);
+    res.status(500).json({ error: "Failed to fetch purchase return" });
   }
 });
 
 /* ======================================
- 🔁 4️⃣ DELETE RETURN (Revert Stock)
+ 🔁 4️⃣ DELETE PURCHASE RETURN (Revert Stock)
 ====================================== */
 router.delete("/:id", async (req, res) => {
   const connection = await db.getConnection();
@@ -145,15 +142,15 @@ router.delete("/:id", async (req, res) => {
       [req.params.id]
     );
 
-    // 🔹 Reverse the stock
+    // 🔹 Reverse stock (increase again)
     for (const it of items) {
       await connection.query(
-        `UPDATE product_master SET stock = GREATEST(stock - ?, 0) WHERE id = ?`,
+        `UPDATE product_master SET stock = stock + ? WHERE id = ?`,
         [it.qty, it.medicine_id]
       );
 
       await connection.query(
-        `UPDATE purchase_items SET sold_qty = sold_qty + ? WHERE medicine_id = ? AND batch_no = ? LIMIT 1`,
+        `UPDATE purchase_items SET quantity = quantity + ? WHERE medicine_id = ? AND batch_no = ? LIMIT 1`,
         [it.qty, it.medicine_id, it.batch_no]
       );
     }
@@ -165,8 +162,8 @@ router.delete("/:id", async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     await connection.rollback();
-    console.error("❌ Return Delete Error:", err);
-    res.status(500).json({ error: "Failed to delete return" });
+    console.error("❌ Purchase Return Delete Error:", err);
+    res.status(500).json({ error: "Failed to delete purchase return" });
   } finally {
     connection.release();
   }

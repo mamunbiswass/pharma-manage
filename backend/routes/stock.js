@@ -3,47 +3,44 @@ const router = express.Router();
 const db = require("../db");
 
 /* ======================================
- 📦 1️⃣ FETCH CURRENT STOCK SUMMARY
+ 📦 1️⃣ FETCH ALL CURRENT STOCK (Product-wise)
 ====================================== */
-router.get("/current-stock", async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const [rows] = await db.query(`
       SELECT 
         pm.id AS medicine_id,
-        pm.name,
+        pm.name AS product_name,
         pm.hsn_code AS hsn,
         pm.gst_rate AS gst,
-        pi.batch_no,
-        pi.expiry_date,
-        pi.purchase_rate,
-        pi.mrp,
-        (pi.quantity - pi.sold_qty) AS qty
-      FROM purchase_items pi
-      LEFT JOIN product_master pm ON pm.id = pi.medicine_id
-      WHERE (pi.quantity - pi.sold_qty) > 0
+        pm.purchase_price AS purchase_rate,
+        pm.mrp_price AS mrp,
+        pm.stock AS qty
+      FROM product_master pm
       ORDER BY pm.name ASC
     `);
 
     res.json(rows);
   } catch (err) {
-    console.error("❌ Current stock fetch error:", err);
+    console.error("❌ Current Stock Fetch Error:", err);
     res.status(500).json({ error: "Failed to fetch current stock" });
   }
 });
 
 /* ======================================
- 📦 2️⃣ FETCH BATCH LIST FOR MEDICINE (for Add Sale Page)
+ 📦 2️⃣ FETCH BATCH LIST FOR SPECIFIC MEDICINE
 ====================================== */
 router.get("/batches/:medicine_id", async (req, res) => {
   const { medicine_id } = req.params;
+
   try {
+    // 🔹 1. Try to fetch from purchase_items table
     const [rows] = await db.query(
       `
       SELECT 
         pi.batch_no,
         pi.expiry_date,
-        pi.quantity,
-        pi.sold_qty,
+        (pi.quantity - pi.sold_qty) AS available_qty,
         pi.purchase_rate,
         pi.mrp,
         pm.pack_size AS pack,
@@ -52,29 +49,67 @@ router.get("/batches/:medicine_id", async (req, res) => {
       FROM purchase_items pi
       LEFT JOIN product_master pm ON pm.id = pi.medicine_id
       WHERE pi.medicine_id = ? 
-      AND (pi.quantity - pi.sold_qty) > 0
+        AND (pi.quantity - pi.sold_qty) > 0
+        AND (pi.expiry_date IS NULL OR pi.expiry_date >= CURDATE())
       ORDER BY pi.expiry_date ASC
       `,
       [medicine_id]
     );
 
-    if (!rows.length) return res.json([]);
+    // 🔹 2. If batch stock found → return it
+    if (rows.length > 0) {
+      const formatted = rows.map((r) => ({
+        batch_no: r.batch_no,
+        expiry_date:
+          r.expiry_date && r.expiry_date !== "0000-00-00"
+            ? r.expiry_date
+            : null,
+        available_qty: Number(r.available_qty) || 0,
+        purchase_rate: Number(r.purchase_rate) || 0,
+        mrp: Number(r.mrp) || 0,
+        pack: r.pack || "-",
+        hsn: r.hsn || "-",
+        gst_rate: Number(r.gst_rate) || 0,
+      }));
+      return res.json(formatted);
+    }
 
-    const formatted = rows.map((r) => ({
-      batch_no: r.batch_no,
-      expiry_date:
-        r.expiry_date && r.expiry_date !== "0000-00-00"
-          ? r.expiry_date
-          : null,
-      available_qty: Number(r.quantity) - Number(r.sold_qty || 0),
-      purchase_rate: Number(r.purchase_rate) || 0,
-      mrp: Number(r.mrp) || 0,
-      pack: r.pack || "-",
-      hsn: r.hsn || "-",
-      gst_rate: Number(r.gst_rate) || 0,
-    }));
+    // 🔹 3. If no batch found → fallback to product_master stock
+    const [fallback] = await db.query(
+      `
+      SELECT 
+        id AS medicine_id,
+        name AS product_name,
+        hsn_code AS hsn,
+        gst_rate,
+        purchase_price AS purchase_rate,
+        mrp_price AS mrp,
+        stock AS available_qty,
+        pack_size AS pack
+      FROM product_master
+      WHERE id = ? AND stock > 0
+      `,
+      [medicine_id]
+    );
 
-    res.json(formatted);
+    if (fallback.length > 0) {
+      const f = fallback[0];
+      return res.json([
+        {
+          batch_no: "-",
+          expiry_date: null,
+          available_qty: Number(f.available_qty) || 0,
+          purchase_rate: Number(f.purchase_rate) || 0,
+          mrp: Number(f.mrp) || 0,
+          pack: f.pack || "-",
+          hsn: f.hsn || "-",
+          gst_rate: Number(f.gst_rate) || 0,
+        },
+      ]);
+    }
+
+    // 🔹 4. If neither batch nor stock → empty result
+    res.json([]);
   } catch (err) {
     console.error("🔴 Fetch batch stock error:", err);
     res.status(500).json({ error: "Failed to fetch stock batches" });
@@ -82,46 +117,7 @@ router.get("/batches/:medicine_id", async (req, res) => {
 });
 
 /* ======================================
- 📊 3️⃣ CHECK AVAILABLE STOCK FOR SPECIFIC BATCH
-====================================== */
-router.get("/check/:medicine_id/:batch_no", async (req, res) => {
-  const { medicine_id, batch_no } = req.params;
-  console.log("🧩 Checking stock:", { medicine_id, batch_no });
-
-  if (!medicine_id || !batch_no) {
-    return res
-      .status(400)
-      .json({ available: 0, error: "Missing medicine_id or batch_no" });
-  }
-
-  try {
-    const [rows] = await db.query(
-      `
-      SELECT (quantity - sold_qty) AS available 
-      FROM purchase_items 
-      WHERE medicine_id = ? 
-      AND TRIM(LOWER(batch_no)) = TRIM(LOWER(?))
-      LIMIT 1
-      `,
-      [medicine_id, batch_no]
-    );
-
-    console.log("🧩 DB result:", rows);
-
-    if (!rows.length)
-      return res.json({ available: 0, message: "Batch not found" });
-
-    res.json({ available: Number(rows[0].available) });
-  } catch (err) {
-    console.error("❌ Stock check DB error:", err);
-    res
-      .status(500)
-      .json({ available: 0, error: err.message || "Failed to check stock" });
-  }
-});
-
-/* ======================================
- 🔄 4️⃣ UPDATE STOCK AFTER SALE
+ 🔄 3️⃣ UPDATE STOCK AFTER SALE
 ====================================== */
 async function updateStockAfterSale(conn, items) {
   try {
@@ -134,7 +130,7 @@ async function updateStockAfterSale(conn, items) {
         SELECT id, quantity, sold_qty 
         FROM purchase_items 
         WHERE medicine_id = ? 
-        AND (quantity - sold_qty) > 0
+          AND (quantity - sold_qty) > 0
         ORDER BY expiry_date ASC
         `,
         [it.medicine_id]
@@ -153,6 +149,12 @@ async function updateStockAfterSale(conn, items) {
         remaining -= useQty;
         if (remaining <= 0) break;
       }
+
+      // 🔹 Fallback: reduce main stock too
+      await conn.query(
+        `UPDATE product_master SET stock = GREATEST(stock - ?, 0) WHERE id = ?`,
+        [it.quantity, it.medicine_id]
+      );
     }
   } catch (err) {
     console.error("❌ updateStockAfterSale error:", err);
@@ -161,7 +163,26 @@ async function updateStockAfterSale(conn, items) {
 }
 
 /* ======================================
- 📤 EXPORT ROUTER & FUNCTION
+ 📊 4️⃣ CHECK AVAILABLE STOCK FOR BATCH
 ====================================== */
+router.get("/check/:medicine_id/:batch_no", async (req, res) => {
+  const { medicine_id, batch_no } = req.params;
+  try {
+    const [rows] = await db.query(
+      `
+      SELECT (quantity - sold_qty) AS available 
+      FROM purchase_items 
+      WHERE medicine_id = ? AND batch_no = ? LIMIT 1
+      `,
+      [medicine_id, batch_no]
+    );
+
+    res.json({ available: rows[0]?.available || 0 });
+  } catch (err) {
+    console.error("❌ Stock check error:", err);
+    res.status(500).json({ available: 0 });
+  }
+});
+
 module.exports = router;
 module.exports.updateStockAfterSale = updateStockAfterSale;

@@ -39,3 +39,7 @@
 .customer_info p,.business_info p, .sub_total p {
     margin: 0;
 }
+.gst_summary tr td {
+    padding: 2px;
+    font-size: 14px;
+}
