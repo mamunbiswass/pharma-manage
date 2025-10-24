@@ -22,7 +22,7 @@ import CustomerList from "./pages/CustomerList";
 import EditProduct from "./pages/EditMedicine";
 import PurchaseInvoicePrint from "./pages/PurchaseInvoicePrint";
 import CurrentStock from "./pages/CurrentStock";
-import ExpiryStock from "./pages/ExpiryStock";
+import ExpiryReport from "./pages/ExpiryReport";
 import LowStock from "./pages/LowStock";
 import InvoiceSettings from "./pages/InvoiceSettings"
 import SalesReturn from "./pages/SalesReturn";
@@ -60,7 +60,7 @@ function App() {
         <Route path="sales-history" element={<SalesHistory />} />
         <Route path="sale-invoice/:id" element={<SaleInvoicePrint />} />
         <Route path="current-stock" element={<CurrentStock/>}/>
-        <Route path="expiry-stock" element={<ExpiryStock/>}/>
+        <Route path="expiry-report" element={<ExpiryReport/>}/>
         <Route path="low-stock" element={<LowStock/>}/>
         <Route path="/sales-return" element={<SalesReturn />} />
         <Route path="/purchase-return" element={<PurchaseReturn/>}/>

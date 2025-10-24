@@ -1,6 +1,6 @@
 /**
  * 🚀 Pharmacy Management Server — FINAL STABLE BUILD
- * Version: 3.0.0
+ * Version: 3.1.0
  */
 
 const express = require("express");
@@ -42,12 +42,15 @@ const salesRoute = require("./routes/sales");
 const stockRoute = require("./routes/stock");
 const currentStockRoute = require("./routes/currentStock");
 const lowStockRoutes = require("./routes/lowStock");
-
 const dashboardRoute = require("./routes/dashboard");
-// const promoRoute = require("./routes/promo");
 
-
-// const expiryStockRoutes = require("./routes/expiryStock"); // optional if added later
+// Optional future route (Expiry report)
+let expiryReportRoute;
+try {
+  expiryReportRoute = require("./routes/expiryReport");
+} catch {
+  console.warn("⚠️ Expiry report route not found — skipping.");
+}
 
 // ================================================
 // 🧾 ROUTE REGISTRATION
@@ -61,10 +64,12 @@ app.use("/api/product_master", productMasterRoutes);
 app.use("/api/categories", categoriesRoute);
 app.use("/api/manufacturers", manufacturersRoute);
 app.use("/api/units", unitRoutes);
-app.use("/api/stock", stockRoute); // handles batch-wise check & stock update
-app.use("/api/current-stock", currentStockRoute); // summary stock view
+app.use("/api/stock", stockRoute);
+app.use("/api/current-stock", currentStockRoute);
 app.use("/api/low-stock", lowStockRoutes);
-// app.use("/api/expiry-stock", expiryStockRoutes); // (if implemented later)
+
+// 🧾 Expiry report (if route exists)
+if (expiryReportRoute) app.use("/api/reports/expiry", expiryReportRoute);
 
 // 💳 Purchases, Sales & Transactions
 app.use("/api/business", businessRoute);
@@ -79,13 +84,12 @@ app.use("/api/invoice-settings", invoiceSettingsRoute);
 // 📊 Dashboard Analytics
 app.use("/api/dashboard", dashboardRoute);
 
-// 🛍 Retailer Zone
+// 🛍 Retailer Zone (DISABLED)
 // app.use("/api/retailers", retailersRoute);
 // app.use("/api/retailer/products", retailerProductsRoute);
 // app.use("/api/retailer/orders", retailerOrdersRoute);
 
-
-// 🎁 Promotions
+// 🎁 Promotions (DISABLED)
 // app.use("/api/promo", promoRoute);
 
 // ================================================
@@ -94,16 +98,16 @@ app.use("/api/dashboard", dashboardRoute);
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, "uploads/"),
   filename: (req, file, cb) => {
-    const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(
-      file.originalname
-    )}`;
+    const uniqueName = `${Date.now()}-${Math.round(
+      Math.random() * 1e9
+    )}${path.extname(file.originalname)}`;
     cb(null, uniqueName);
   },
 });
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB limit
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
   fileFilter: (req, file, cb) => {
     const allowed = [".png", ".jpg", ".jpeg", ".webp"];
     const ext = path.extname(file.originalname).toLowerCase();
@@ -115,12 +119,21 @@ const upload = multer({
 });
 
 // ✅ Upload Route
-app.post("/api/upload-logo", upload.single("logo"), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: "No file uploaded" });
-  res.json({
-    success: true,
-    filename: req.file.filename,
-    url: `/uploads/${req.file.filename}`,
+app.post("/api/upload-logo", (req, res, next) => {
+  const uploader = upload.single("logo");
+  uploader(req, res, (err) => {
+    if (err) {
+      console.error("❌ Upload error:", err.message);
+      return res.status(400).json({ error: err.message });
+    }
+    if (!req.file)
+      return res.status(400).json({ error: "No file uploaded!" });
+
+    res.json({
+      success: true,
+      filename: req.file.filename,
+      url: `/uploads/${req.file.filename}`,
+    });
   });
 });
 
@@ -128,7 +141,10 @@ app.post("/api/upload-logo", upload.single("logo"), (req, res) => {
 // ⚠️ 404 HANDLER
 // ================================================
 app.use((req, res) => {
-  console.warn("❌ Route not found:", req.originalUrl);
+  // suppress log for disabled retailer routes
+  if (!req.originalUrl.includes("/api/admin/retailers")) {
+    console.warn("❌ Route not found:", req.originalUrl);
+  }
   res.status(404).json({ error: "API endpoint not found" });
 });
 

@@ -32,18 +32,38 @@ function AddMedicine() {
   const [manufacturers, setManufacturers] = useState([]);
   const [units, setUnits] = useState([]);
 
-  // ✅ Load dropdown + product names
+  // ✅ Safe Array Parser
+  const safeArray = (res, key) => {
+    if (!res?.data) return [];
+    if (Array.isArray(res.data)) return res.data;
+    if (key && Array.isArray(res.data[key])) return res.data[key];
+    return [];
+  };
+
+  // ✅ Load dropdown + product names safely
   useEffect(() => {
-    API.get("/product_master").then((res) => {
-      const names = res.data.map((p) => p.name);
-      setAllProducts(names);
-    });
-    API.get("/categories").then((res) => setCategories(res.data));
-    API.get("/manufacturers").then((res) => setManufacturers(res.data));
-    API.get("/units").then((res) => setUnits(res.data));
+    (async () => {
+      try {
+        const [resProd, resCat, resManu, resUnit] = await Promise.all([
+          API.get("/product_master"),
+          API.get("/categories"),
+          API.get("/manufacturers"),
+          API.get("/units"),
+        ]);
+
+        const products = safeArray(resProd, "products");
+        setAllProducts(products.map((p) => p.name));
+
+        setCategories(safeArray(resCat, "categories"));
+        setManufacturers(safeArray(resManu, "manufacturers"));
+        setUnits(safeArray(resUnit, "units"));
+      } catch (err) {
+        console.error("Failed to load dropdown data:", err);
+      }
+    })();
   }, []);
 
-  // ✅ Handle input change
+  // ✅ Handle input change + name suggestions
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm({ ...form, [name]: value });
@@ -67,7 +87,9 @@ function AddMedicine() {
     e.preventDefault();
     try {
       await API.post("/product_master", form);
-      alert("✅ Product Master added successfully!");
+      alert("✅ Product added successfully!");
+
+      // Reset form
       setForm({
         name: "",
         category_id: "",
@@ -84,7 +106,11 @@ function AddMedicine() {
       setSuggestions([]);
     } catch (err) {
       console.error("Add product error:", err);
-      alert("❌ Failed to add product");
+      const msg =
+        err.response?.data?.error ||
+        err.message ||
+        "❌ Failed to add product";
+      alert(msg);
     }
   };
 
@@ -98,7 +124,7 @@ function AddMedicine() {
         <Card.Body>
           <Form onSubmit={handleSubmit} autoComplete="off">
             <Row className="mb-3">
-              <Col md={4}>
+              <Col md={4} className="position-relative">
                 <Form.Label>Product Name</Form.Label>
                 <Form.Control
                   type="text"
@@ -110,7 +136,7 @@ function AddMedicine() {
                 {suggestions.length > 0 && (
                   <ListGroup
                     className="position-absolute w-100"
-                    style={{ zIndex: 1000 }}
+                    style={{ zIndex: 1000, maxHeight: "150px", overflowY: "auto" }}
                   >
                     {suggestions.map((s, i) => (
                       <ListGroup.Item
@@ -124,6 +150,7 @@ function AddMedicine() {
                   </ListGroup>
                 )}
               </Col>
+
               <Col md={4}>
                 <Form.Label>Category</Form.Label>
                 <Form.Select
@@ -140,6 +167,7 @@ function AddMedicine() {
                   ))}
                 </Form.Select>
               </Col>
+
               <Col md={4}>
                 <Form.Label>Manufacturer</Form.Label>
                 <Form.Select
@@ -259,7 +287,9 @@ function AddMedicine() {
           </Form>
         </Card.Body>
       </Card>
-      <BulkImportProducts/>
+
+      {/* ✅ Bulk Import Section */}
+      <BulkImportProducts />
     </Container>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
   FaBars,
@@ -10,24 +10,17 @@ import {
   FaFileInvoice,
   FaBoxOpen,
   FaUserCircle,
-  FaBell,
   FaCogs,
   FaChevronDown,
   FaChevronUp,
 } from "react-icons/fa";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./AppLayout.css";
-import API from "../api/axios";
 
 function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showDropdown, setShowDropdown] = useState(false);
   const [activeMenu, setActiveMenu] = useState(null);
-
-  // 🔔 Notification states
-  const [notifications, setNotifications] = useState([]);
-  const [count, setCount] = useState(0);
-  const [showBellDropdown, setShowBellDropdown] = useState(false);
 
   const navigate = useNavigate();
 
@@ -41,25 +34,6 @@ function AppLayout() {
     localStorage.removeItem("user");
     navigate("/login");
   };
-
-  // ✅ Fetch pending retailer notifications
-  const fetchNotifications = async () => {
-    try {
-      const res = await API.get("/admin/retailers/pending");
-      setNotifications(res.data);
-      setCount(res.data.length);
-    } catch (err) {
-      console.error("Failed to load notifications:", err);
-    }
-  };
-
-  useEffect(() => {
-    fetchNotifications();
-
-    // Auto refresh every 30s (optional)
-    const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
-  }, []);
 
   return (
     <div className="app-layout d-flex">
@@ -99,7 +73,6 @@ function AppLayout() {
             </button>
             {activeMenu === "products" && (
               <ul className="btn-toggle-nav list-unstyled fw-normal pb-1 small">
-                
                 <li>
                   <NavLink className="nav-link ms-4" to="/add">
                     Add Product
@@ -114,7 +87,7 @@ function AppLayout() {
                   <NavLink className="nav-link ms-4" to="/category-management">
                     Category Management
                   </NavLink>
-                   <NavLink className="nav-link ms-4" to="/manufacturer-management">
+                  <NavLink className="nav-link ms-4" to="/manufacturer-management">
                     Manufacturer Management
                   </NavLink>
                   <NavLink className="nav-link ms-4" to="/unit-management">
@@ -124,121 +97,257 @@ function AppLayout() {
               </ul>
             )}
           </li>
-          
+
           {/* Suppliers */}
           <li className="nav-item mb-2">
-            <button className="btn btn-toggle align-items-center w-100 d-flex justify-content-between" onClick={() => toggleMenu('suppliers')}>
-              <span><FaUsers className="me-2" />Suppliers</span>
-              {activeMenu === 'suppliers' ? <FaChevronUp /> : <FaChevronDown />}
+            <button
+              className="btn btn-toggle align-items-center w-100 d-flex justify-content-between"
+              onClick={() => toggleMenu("suppliers")}
+            >
+              <span>
+                <FaUsers className="me-2" />
+                Suppliers
+              </span>
+              {activeMenu === "suppliers" ? <FaChevronUp /> : <FaChevronDown />}
             </button>
-            {activeMenu === 'suppliers' && (
+            {activeMenu === "suppliers" && (
               <ul className="btn-toggle-nav list-unstyled fw-normal pb-1 small">
-                <li><NavLink className="nav-link ms-4" to="/supplierlist">Supplier List</NavLink></li>
-                <li><NavLink className="nav-link ms-4" to="/addsupplier">Add Supplier</NavLink></li>
+                <li>
+                  <NavLink className="nav-link ms-4" to="/supplierlist">
+                    Supplier List
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink className="nav-link ms-4" to="/addsupplier">
+                    Add Supplier
+                  </NavLink>
+                </li>
               </ul>
             )}
-          </li>         
+          </li>
 
           {/* Purchases */}
           <li className="nav-item mb-2">
-            <button className="btn btn-toggle align-items-center w-100 d-flex justify-content-between" onClick={() => toggleMenu('purchases')}>
-              <span><FaShoppingCart className="me-2" />Purchases</span>
-              {activeMenu === 'purchases' ? <FaChevronUp /> : <FaChevronDown />}
+            <button
+              className="btn btn-toggle align-items-center w-100 d-flex justify-content-between"
+              onClick={() => toggleMenu("purchases")}
+            >
+              <span>
+                <FaShoppingCart className="me-2" />
+                Purchases
+              </span>
+              {activeMenu === "purchases" ? <FaChevronUp /> : <FaChevronDown />}
             </button>
-            {activeMenu === 'purchases' && (
+            {activeMenu === "purchases" && (
               <ul className="btn-toggle-nav list-unstyled fw-normal pb-1 small">
-                <li><NavLink className="nav-link ms-4" to="/purchase-bill">New Purchase Bill</NavLink></li>
-                <li><NavLink className="nav-link ms-4" to="/purchase-history">Purchase History</NavLink></li>
-                <li><NavLink className="nav-link ms-4" to="/purchase-return">Purchase Return</NavLink></li>
+                <li>
+                  <NavLink className="nav-link ms-4" to="/purchase-bill">
+                    New Purchase Bill
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink className="nav-link ms-4" to="/purchase-history">
+                    Purchase History
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink className="nav-link ms-4" to="/purchase-return">
+                    Purchase Return
+                  </NavLink>
+                </li>
               </ul>
             )}
           </li>
 
           {/* Sales */}
           <li className="nav-item mb-2">
-            <button className="btn btn-toggle align-items-center w-100 d-flex justify-content-between" onClick={() => toggleMenu('sales')}>
-              <span><FaFileInvoice className="me-2" />Sales</span>
-              {activeMenu === 'sales' ? <FaChevronUp /> : <FaChevronDown />}
+            <button
+              className="btn btn-toggle align-items-center w-100 d-flex justify-content-between"
+              onClick={() => toggleMenu("sales")}
+            >
+              <span>
+                <FaFileInvoice className="me-2" />
+                Sales
+              </span>
+              {activeMenu === "sales" ? <FaChevronUp /> : <FaChevronDown />}
             </button>
-            {activeMenu === 'sales' && (
+            {activeMenu === "sales" && (
               <ul className="btn-toggle-nav list-unstyled fw-normal pb-1 small">
-                <li><NavLink className="nav-link ms-4" to="/sale">New Sale</NavLink></li>
-                <li><NavLink className="nav-link ms-4" to="/sales-history">Sales History</NavLink></li>
-                <li><NavLink className="nav-link ms-4" to="/cancelled-sales">Cancelled Sales</NavLink></li>
-                <li><NavLink className="nav-link ms-4" to="/sales-return">Sales Return</NavLink></li>
+                <li>
+                  <NavLink className="nav-link ms-4" to="/sale">
+                    New Sale
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink className="nav-link ms-4" to="/sales-history">
+                    Sales History
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink className="nav-link ms-4" to="/cancelled-sales">
+                    Cancelled Sales
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink className="nav-link ms-4" to="/sales-return">
+                    Sales Return
+                  </NavLink>
+                </li>
               </ul>
             )}
           </li>
 
           {/* Inventory Reports */}
           <li className="nav-item mb-2">
-            <button className="btn btn-toggle align-items-center w-100 d-flex justify-content-between" onClick={() => toggleMenu('invreports')}>
-              <span><FaBoxOpen className="me-2" />Inventory Reports</span>
-              {activeMenu === 'invreports' ? <FaChevronUp /> : <FaChevronDown />}
+            <button
+              className="btn btn-toggle align-items-center w-100 d-flex justify-content-between"
+              onClick={() => toggleMenu("invreports")}
+            >
+              <span>
+                <FaBoxOpen className="me-2" />
+                Inventory Reports
+              </span>
+              {activeMenu === "invreports" ? <FaChevronUp /> : <FaChevronDown />}
             </button>
-            {activeMenu === 'invreports' && (
+            {activeMenu === "invreports" && (
               <ul className="btn-toggle-nav list-unstyled fw-normal pb-1 small">
-                <li><NavLink className="nav-link ms-4" to="/current-stock">Current Stock</NavLink></li>
-                <li><NavLink className="nav-link ms-4" to="/expiry-stock">Expiry Report</NavLink></li>
-                <li><NavLink className="nav-link ms-4" to="/low-stock">Low Stock Alert</NavLink></li>
-                <li><NavLink className="nav-link ms-4" to="/return-dashboard">Return Dashboard</NavLink></li>
+                <li>
+                  <NavLink className="nav-link ms-4" to="/current-stock">
+                    Current Stock
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink className="nav-link ms-4" to="/expiry-report">
+                    Expiry Report
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink className="nav-link ms-4" to="/low-stock">
+                    Low Stock Alert
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink className="nav-link ms-4" to="/return-dashboard">
+                    Return Dashboard
+                  </NavLink>
+                </li>
               </ul>
             )}
           </li>
 
           {/* Customers */}
           <li className="nav-item mb-2">
-            <button className="btn btn-toggle align-items-center w-100 d-flex justify-content-between" onClick={() => toggleMenu('customers')}>
-              <span><FaUsers className="me-2" />Customers</span>
-              {activeMenu === 'customers' ? <FaChevronUp /> : <FaChevronDown />}
+            <button
+              className="btn btn-toggle align-items-center w-100 d-flex justify-content-between"
+              onClick={() => toggleMenu("customers")}
+            >
+              <span>
+                <FaUsers className="me-2" />
+                Customers
+              </span>
+              {activeMenu === "customers" ? <FaChevronUp /> : <FaChevronDown />}
             </button>
-            {activeMenu === 'customers' && (
+            {activeMenu === "customers" && (
               <ul className="btn-toggle-nav list-unstyled fw-normal pb-1 small">
-                <li><NavLink className="nav-link ms-4" to="/customer-list">Customer List</NavLink></li>
-                <li><NavLink className="nav-link ms-4" to="/add-customer">Add Customer</NavLink></li>
+                <li>
+                  <NavLink className="nav-link ms-4" to="/customer-list">
+                    Customer List
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink className="nav-link ms-4" to="/add-customer">
+                    Add Customer
+                  </NavLink>
+                </li>
               </ul>
             )}
           </li>
 
           {/* Payments */}
           <li className="nav-item mb-2">
-            <button className="btn btn-toggle align-items-center w-100 d-flex justify-content-between" onClick={() => toggleMenu('payments')}>
-              <span><FaUsers className="me-2" />Payments</span>
-              {activeMenu === 'payments' ? <FaChevronUp /> : <FaChevronDown />}
+            <button
+              className="btn btn-toggle align-items-center w-100 d-flex justify-content-between"
+              onClick={() => toggleMenu("payments")}
+            >
+              <span>
+                <FaUsers className="me-2" />
+                Payments
+              </span>
+              {activeMenu === "payments" ? <FaChevronUp /> : <FaChevronDown />}
             </button>
-            {activeMenu === 'payments' && (
+            {activeMenu === "payments" && (
               <ul className="btn-toggle-nav list-unstyled fw-normal pb-1 small">
-                <li><NavLink className="nav-link ms-4" to="/customer-receipt">Customer Receipts</NavLink></li>
-                <li><NavLink className="nav-link ms-4" to="/supplier-payments">Supplier Payments</NavLink></li>
+                <li>
+                  <NavLink className="nav-link ms-4" to="/customer-receipt">
+                    Customer Receipts
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink className="nav-link ms-4" to="/supplier-payments">
+                    Supplier Payments
+                  </NavLink>
+                </li>
               </ul>
             )}
           </li>
 
           {/* Reports */}
           <li className="nav-item mb-2">
-            <button className="btn btn-toggle align-items-center w-100 d-flex justify-content-between" onClick={() => toggleMenu('reports')}>
-              <span><FaBoxOpen className="me-2" />Reports</span>
-              {activeMenu === 'reports' ? <FaChevronUp /> : <FaChevronDown />}
+            <button
+              className="btn btn-toggle align-items-center w-100 d-flex justify-content-between"
+              onClick={() => toggleMenu("reports")}
+            >
+              <span>
+                <FaBoxOpen className="me-2" />
+                Reports
+              </span>
+              {activeMenu === "reports" ? <FaChevronUp /> : <FaChevronDown />}
             </button>
-            {activeMenu === 'reports' && (
+            {activeMenu === "reports" && (
               <ul className="btn-toggle-nav list-unstyled fw-normal pb-1 small">
-                <li><NavLink className="nav-link ms-4" to="/sales-report">Sales Report</NavLink></li>
-                <li><NavLink className="nav-link ms-4" to="/purchase-report">Purchase Report</NavLink></li>
-                <li><NavLink className="nav-link ms-4" to="/gst-summary">GST Summary</NavLink></li>
+                <li>
+                  <NavLink className="nav-link ms-4" to="/sales-report">
+                    Sales Report
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink className="nav-link ms-4" to="/purchase-report">
+                    Purchase Report
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink className="nav-link ms-4" to="/gst-summary">
+                    GST Summary
+                  </NavLink>
+                </li>
               </ul>
             )}
           </li>
 
           {/* Settings */}
           <li className="nav-item mb-2">
-            <button className="btn btn-toggle align-items-center w-100 d-flex justify-content-between" onClick={() => toggleMenu('settings')}>
-              <span><FaCogs className="me-2" />Settings</span>
-              {activeMenu === 'settings' ? <FaChevronUp /> : <FaChevronDown />}
+            <button
+              className="btn btn-toggle align-items-center w-100 d-flex justify-content-between"
+              onClick={() => toggleMenu("settings")}
+            >
+              <span>
+                <FaCogs className="me-2" />
+                Settings
+              </span>
+              {activeMenu === "settings" ? <FaChevronUp /> : <FaChevronDown />}
             </button>
-            {activeMenu === 'settings' && (
+            {activeMenu === "settings" && (
               <ul className="btn-toggle-nav list-unstyled fw-normal pb-1 small">
-                <li><NavLink className="nav-link ms-4" to="/businessinfo">Business Info</NavLink></li>
-                <li><NavLink className="nav-link ms-4" to="/invoice-settings">Invoice Settings</NavLink></li>
+                <li>
+                  <NavLink className="nav-link ms-4" to="/businessinfo">
+                    Business Info
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink className="nav-link ms-4" to="/invoice-settings">
+                    Invoice Settings
+                  </NavLink>
+                </li>
               </ul>
             )}
           </li>
@@ -263,100 +372,31 @@ function AppLayout() {
             <span className="fw-bold">Inventory Management</span>
           </div>
 
-          <div className="d-flex align-items-center position-relative">
-            {/* 🔔 Bell Icon */}
-            <div className="dropdown me-3" style={{ position: "relative" }}>
-              <button
-                className="btn btn-light position-relative"
-                onClick={() => setShowBellDropdown(!showBellDropdown)}
+          {/* 👤 User Dropdown */}
+          <div className="dropdown" style={{ position: "relative" }}>
+            <button className="btn btn-light" onClick={toggleDropdown}>
+              <FaUserCircle size={25} />
+            </button>
+            {showDropdown && (
+              <ul
+                className="dropdown-menu show"
+                style={{
+                  right: 0,
+                  left: "auto",
+                  position: "absolute",
+                  marginTop: "0.5rem",
+                }}
               >
-                <FaBell size={20} />
-                {count > 0 && (
-                  <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                    {count}
-                  </span>
-                )}
-              </button>
-
-              {showBellDropdown && (
-                <ul
-                  className="dropdown-menu show"
-                  style={{
-                    right: 0,
-                    left: "auto",
-                    position: "absolute",
-                    marginTop: "0.5rem",
-                    minWidth: "300px",
-                  }}
-                >
-                  <li className="dropdown-header">
-                    Notifications ({count})
-                  </li>
-
-                  {notifications.length === 0 && (
-                    <li>
-                      <span className="dropdown-item text-muted">
-                        No pending approvals
-                      </span>
-                    </li>
-                  )}
-
-                  {notifications.slice(0, 5).map((n) => (
-                    <li key={n.id}>
-                      <button
-                        className="dropdown-item"
-                        onClick={() => navigate("/pending-approvals")}
-                      >
-                        <strong>{n.name}</strong> requested signup
-                        <br />
-                        <small className="text-muted">
-                          {new Date(n.created_at).toLocaleString()}
-                        </small>
-                      </button>
-                    </li>
-                  ))}
-
-                  <li>
-                    <hr className="dropdown-divider" />
-                  </li>
-                  <li>
-                    <button
-                      className="dropdown-item fw-bold text-primary"
-                      onClick={() => navigate("/pending-approvals")}
-                    >
-                      View all
-                    </button>
-                  </li>
-                </ul>
-              )}
-            </div>
-
-            {/* 👤 User Dropdown */}
-            <div className="dropdown" style={{ position: "relative" }}>
-              <button className="btn btn-light" onClick={toggleDropdown}>
-                <FaUserCircle size={25} />
-              </button>
-              {showDropdown && (
-                <ul
-                  className="dropdown-menu show"
-                  style={{
-                    right: 0,
-                    left: "auto",
-                    position: "absolute",
-                    marginTop: "0.5rem",
-                  }}
-                >
-                  <li>
-                    <button
-                      className="dropdown-item text-danger"
-                      onClick={handleSignOut}
-                    >
-                      Sign out
-                    </button>
-                  </li>
-                </ul>
-              )}
-            </div>
+                <li>
+                  <button
+                    className="dropdown-item text-danger"
+                    onClick={handleSignOut}
+                  >
+                    Sign out
+                  </button>
+                </li>
+              </ul>
+            )}
           </div>
         </nav>
 
