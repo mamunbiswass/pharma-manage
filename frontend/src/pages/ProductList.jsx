@@ -165,8 +165,7 @@ function ProductList() {
                 <th>HSN</th>
                 <th>GST</th>
                 <th>Unit</th>
-                <th>Pack Size</th>
-                <th>Stock</th>
+                <th>Pack Size</th>                
                 <th>Purchase</th>
                 <th>Sale</th>
                 <th>MRP</th>
@@ -190,8 +189,7 @@ function ProductList() {
                     <td>{m.hsn_code}</td>
                     <td>{m.gst_rate}%</td>
                     <td>{m.unit}</td>
-                    <td>{m.pack_size}</td>
-                    <td>{m.stock}</td>
+                    <td>{m.pack_size}</td>                    
                     <td>{parseFloat(m.purchase_price || 0).toFixed(2)}</td>
                     <td>{parseFloat(m.sale_price || 0).toFixed(2)}</td>
                     <td>{parseFloat(m.mrp_price || 0).toFixed(2)}</td>

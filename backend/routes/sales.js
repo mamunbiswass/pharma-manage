@@ -1,14 +1,14 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../db");
-const { updateStockAfterSale } = require("./stock");
 
-/* ======================================
- 🧾 1️⃣ SAVE NEW SALE (Invoice + Items)
-====================================== */
+// ===============================
+// 🧾 1️⃣ SAVE NEW SALE (same as before)
+// ===============================
 router.post("/", async (req, res) => {
-  const connection = await db.getConnection();
+  const conn = await db.getConnection();
   try {
+    const shop_id = req.shop_id || 1;
     const {
       customer_id,
       date,
@@ -21,28 +21,18 @@ router.post("/", async (req, res) => {
       items,
     } = req.body;
 
-    if (!items || items.length === 0)
+    if (!items || !items.length) {
       return res.status(400).json({ error: "No items provided" });
+    }
 
-    // ✅ STEP 1: Stock validation before starting transaction
+    // ✅ STEP 1: Validate stock
     for (const it of items) {
-      const [stockRows] = await db.query(
-        `
-        SELECT 
-          IFNULL(SUM(pi.quantity - pi.sold_qty), 0) AS available_batch_stock,
-          pm.stock AS main_stock
-        FROM product_master pm
-        LEFT JOIN purchase_items pi ON pm.id = pi.medicine_id
-        WHERE pm.id = ?
-        `,
-        [it.medicine_id]
+      const [stockRow] = await db.query(
+        `SELECT stock FROM shop_products WHERE shop_id = ? AND product_id = ? LIMIT 1`,
+        [shop_id, it.medicine_id]
       );
 
-      const available =
-        Number(stockRows[0].available_batch_stock || 0) > 0
-          ? Number(stockRows[0].available_batch_stock)
-          : Number(stockRows[0].main_stock || 0);
-
+      const available = Number(stockRow[0]?.stock || 0);
       if (available < it.quantity) {
         return res.status(400).json({
           error: `❌ Not enough stock for "${it.product_name}". Available: ${available}, Requested: ${it.quantity}`,
@@ -50,25 +40,28 @@ router.post("/", async (req, res) => {
       }
     }
 
-    // ✅ STEP 2: Begin Transaction
-    await connection.beginTransaction();
+    await conn.beginTransaction();
 
     // 🔹 Generate unique invoice number
-    const [last] = await connection.query(
-      `SELECT id FROM sales ORDER BY id DESC LIMIT 1`
+    const [last] = await conn.query(
+      `SELECT id FROM sales WHERE shop_id = ? ORDER BY id DESC LIMIT 1`,
+      [shop_id]
     );
     const nextNo = (last[0]?.id || 0) + 1;
-    const invoiceNumber = `INV-${new Date()
+    const invoiceNumber = `INV-${shop_id}-${new Date()
       .toISOString()
       .slice(0, 10)
       .replace(/-/g, "")}-${String(nextNo).padStart(4, "0")}`;
 
-    // 🔹 Insert into sales table
-    const [result] = await connection.query(
-      `INSERT INTO sales 
-       (invoice_number, customer_id, date, bill_type, payment_status, payment_mode, paid_amount, due_amount, total, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+    // 🔹 Insert sale master
+    const [saleRes] = await conn.query(
+      `
+      INSERT INTO sales 
+      (shop_id, invoice_number, customer_id, date, bill_type, payment_status, payment_mode, paid_amount, due_amount, total, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+      `,
       [
+        shop_id,
         invoiceNumber,
         customer_id,
         date,
@@ -81,15 +74,18 @@ router.post("/", async (req, res) => {
       ]
     );
 
-    const saleId = result.insertId;
+    const saleId = saleRes.insertId;
 
-    // 🔹 Insert sale items
+    // 🔹 Insert sale items + update stock
     for (const it of items) {
-      await connection.query(
-        `INSERT INTO sales_items 
-         (sale_id, medicine_id, product_name, hsn, batch, expiry_date, unit, qty, rate, mrp, gst, disc, amount, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+      await conn.query(
+        `
+        INSERT INTO sales_items 
+        (shop_id, sale_id, medicine_id, product_name, hsn, batch, expiry_date, unit, qty, rate, mrp, gst, disc, amount, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+        `,
         [
+          shop_id,
           saleId,
           it.medicine_id,
           it.product_name,
@@ -105,33 +101,41 @@ router.post("/", async (req, res) => {
           it.quantity * it.price,
         ]
       );
+
+      // 🔹 Decrease stock
+      await conn.query(
+        `
+        UPDATE shop_products 
+        SET stock = GREATEST(stock - ?, 0)
+        WHERE shop_id = ? AND product_id = ?
+        `,
+        [it.quantity, shop_id, it.medicine_id]
+      );
     }
 
-    // ✅ Update stock (batch-wise & main)
-    await updateStockAfterSale(connection, items);
-
-    await connection.commit();
-
+    await conn.commit();
     res.json({
       success: true,
       sale_id: saleId,
       invoice_number: invoiceNumber,
+      message: "✅ Sale saved successfully",
     });
   } catch (err) {
-    await connection.rollback();
+    await conn.rollback();
     console.error("❌ Sale Save Error:", err);
-    res.status(500).json({ error: err.message || "Failed to save sale" });
+    res.status(500).json({ error: "Failed to save sale", details: err.message });
   } finally {
-    connection.release();
+    conn.release();
   }
 });
 
-/* ======================================
- 🧾 2️⃣ FETCH ALL SALES (List)
-====================================== */
+// ===============================
+// 🧾 2️⃣ FETCH ALL SALES (Shop-wise + Date Shortcuts)
+// ===============================
 router.get("/", async (req, res) => {
   try {
-    const { q, status, from, to } = req.query;
+    const shop_id = req.shop_id || 1;
+    const { q, status, from, to, date_filter } = req.query;
 
     let query = `
       SELECT 
@@ -148,24 +152,38 @@ router.get("/", async (req, res) => {
         s.payment_status
       FROM sales s
       LEFT JOIN customers c ON s.customer_id = c.id
-      WHERE 1
+      WHERE s.shop_id = ?
     `;
+    const params = [shop_id];
 
-    const params = [];
-
+    // 🔹 Text search
     if (q) {
       query += ` AND (s.invoice_number LIKE ? OR c.name LIKE ?)`;
       params.push(`%${q}%`, `%${q}%`);
     }
 
+    // 🔹 Payment status
     if (status) {
       query += ` AND s.payment_status = ?`;
       params.push(status);
     }
 
-    if (from && to) {
-      query += ` AND DATE(s.date) BETWEEN ? AND ?`;
+    // 🔹 Date filter (Custom or Shortcuts)
+    let dateCondition = "";
+
+    if (date_filter === "yesterday") {
+      dateCondition = "DATE(s.date) = CURDATE() - INTERVAL 1 DAY";
+    } else if (date_filter === "2days") {
+      dateCondition = "DATE(s.date) = CURDATE() - INTERVAL 2 DAY";
+    } else if (date_filter === "3days") {
+      dateCondition = "DATE(s.date) = CURDATE() - INTERVAL 3 DAY";
+    } else if (from && to) {
+      dateCondition = "DATE(s.date) BETWEEN ? AND ?";
       params.push(from, to);
+    }
+
+    if (dateCondition) {
+      query += ` AND ${dateCondition}`;
     }
 
     query += ` ORDER BY s.id DESC`;
@@ -178,11 +196,12 @@ router.get("/", async (req, res) => {
   }
 });
 
-/* ======================================
- 🧾 3️⃣ FETCH SINGLE SALE (Invoice)
-====================================== */
+// ===============================
+// 🧾 3️⃣ FETCH SINGLE SALE (Invoice + Items)
+// ===============================
 router.get("/:id", async (req, res) => {
   try {
+    const shop_id = req.shop_id || 1;
     const { id } = req.params;
 
     const [saleData] = await db.query(
@@ -194,9 +213,9 @@ router.get("/:id", async (req, res) => {
         c.address
       FROM sales s
       LEFT JOIN customers c ON s.customer_id = c.id
-      WHERE s.id = ?
+      WHERE s.id = ? AND s.shop_id = ?
       `,
-      [id]
+      [id, shop_id]
     );
 
     if (!saleData.length)
@@ -219,9 +238,9 @@ router.get("/:id", async (req, res) => {
         si.disc,
         si.amount
       FROM sales_items si
-      WHERE si.sale_id = ?
+      WHERE si.sale_id = ? AND si.shop_id = ?
       `,
-      [id]
+      [id, shop_id]
     );
 
     res.json({
@@ -234,39 +253,44 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-/* ======================================
- 🧾 4️⃣ DELETE SALE (Revert Stock)
-====================================== */
+// ===============================
+// 🧾 4️⃣ DELETE SALE (Restore Stock)
+// ===============================
 router.delete("/:id", async (req, res) => {
+  const shop_id = req.shop_id || 1;
   const { id } = req.params;
-  const connection = await db.getConnection();
+  const conn = await db.getConnection();
 
   try {
-    await connection.beginTransaction();
+    await conn.beginTransaction();
 
-    const [items] = await connection.query(
-      `SELECT medicine_id, qty FROM sales_items WHERE sale_id = ?`,
-      [id]
+    const [items] = await conn.query(
+      `SELECT medicine_id, qty FROM sales_items WHERE sale_id = ? AND shop_id = ?`,
+      [id, shop_id]
     );
 
     for (const it of items) {
-      await connection.query(
-        `UPDATE product_master SET stock = stock + ? WHERE id = ?`,
-        [it.qty, it.medicine_id]
+      await conn.query(
+        `
+        UPDATE shop_products 
+        SET stock = stock + ?
+        WHERE shop_id = ? AND product_id = ?
+        `,
+        [it.qty, shop_id, it.medicine_id]
       );
     }
 
-    await connection.query(`DELETE FROM sales_items WHERE sale_id = ?`, [id]);
-    await connection.query(`DELETE FROM sales WHERE id = ?`, [id]);
+    await conn.query(`DELETE FROM sales_items WHERE sale_id = ? AND shop_id = ?`, [id, shop_id]);
+    await conn.query(`DELETE FROM sales WHERE id = ? AND shop_id = ?`, [id, shop_id]);
 
-    await connection.commit();
-    res.json({ success: true });
+    await conn.commit();
+    res.json({ success: true, message: "✅ Sale deleted and stock restored" });
   } catch (err) {
-    await connection.rollback();
+    await conn.rollback();
     console.error("❌ Sale delete error:", err);
     res.status(500).json({ error: "Failed to delete sale" });
   } finally {
-    connection.release();
+    conn.release();
   }
 });
 

@@ -1,3 +1,4 @@
+// routes/productMaster.js
 const express = require("express");
 const router = express.Router();
 const db = require("../db");
@@ -5,30 +6,43 @@ const multer = require("multer");
 const fs = require("fs");
 const csv = require("csv-parser");
 
-// ================== Multer Config ==================
+/* ===============================
+ 🧩 Multer Configuration
+=============================== */
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, "uploads/"),
   filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname),
 });
 const upload = multer({ storage });
 
-// ================== Helper: Get/Create ID by Name ==================
-async function getOrCreate(conn, table, name) {
+/* ===============================
+ 🔹 Helper: Get or Create ID (shop-wise)
+=============================== */
+async function getOrCreate(conn, table, name, shop_id) {
   if (!name || !name.trim()) return null;
-  const [rows] = await conn.query(`SELECT id FROM ${table} WHERE name = ? LIMIT 1`, [name.trim()]);
+  const [rows] = await conn.query(
+    `SELECT id FROM ${table} WHERE shop_id = ? AND name = ? LIMIT 1`,
+    [shop_id, name.trim()]
+  );
   if (rows.length > 0) return rows[0].id;
 
-  const [res] = await conn.query(`INSERT INTO ${table} (name) VALUES (?)`, [name.trim()]);
+  const [res] = await conn.query(
+    `INSERT INTO ${table} (shop_id, name) VALUES (?, ?)`,
+    [shop_id, name.trim()]
+  );
   return res.insertId;
 }
 
-// ================== GET All (Pagination + Filter) ==================
+/* ===============================
+ 🔍 GET ALL PRODUCTS (Shared List)
+=============================== */
 router.get("/", async (req, res) => {
   try {
     const { page = 1, limit = 100, search = "", category = "", manufacturer = "" } = req.query;
     const offset = (page - 1) * limit;
 
-    let where = "WHERE 1";
+    // 🔹 Product_master is common — no shop_id filter
+    let where = "WHERE 1=1";
     const params = [];
 
     if (search) {
@@ -46,7 +60,11 @@ router.get("/", async (req, res) => {
 
     const [rows] = await db.query(
       `
-      SELECT p.*, c.name AS category, m.name AS manufacturer, u.name AS unit
+      SELECT 
+        p.*, 
+        c.name AS category, 
+        m.name AS manufacturer, 
+        u.name AS unit
       FROM product_master p
       LEFT JOIN categories c ON p.category_id = c.id
       LEFT JOIN manufacturers m ON p.manufacturer_id = m.id
@@ -59,24 +77,14 @@ router.get("/", async (req, res) => {
     );
 
     const [[countRow]] = await db.query(
-      `
-      SELECT COUNT(*) AS total FROM product_master p
-      LEFT JOIN categories c ON p.category_id = c.id
-      LEFT JOIN manufacturers m ON p.manufacturer_id = m.id
-      ${where}
-      `,
+      `SELECT COUNT(*) AS total FROM product_master p LEFT JOIN categories c ON p.category_id = c.id LEFT JOIN manufacturers m ON p.manufacturer_id = m.id ${where}`,
       params
     );
-
-    const [cats] = await db.query("SELECT DISTINCT name FROM categories");
-    const [mans] = await db.query("SELECT DISTINCT name FROM manufacturers");
 
     res.json({
       data: rows,
       total: countRow.total,
       totalPages: Math.ceil(countRow.total / limit),
-      categories: cats.map((c) => c.name),
-      manufacturers: mans.map((m) => m.name),
     });
   } catch (err) {
     console.error("❌ Error fetching product_master:", err);
@@ -84,7 +92,9 @@ router.get("/", async (req, res) => {
   }
 });
 
-// ================== 🔍 SEARCH (Used by PurchaseBill.jsx) ==================
+/* ===============================
+ 🔍 SEARCH (for purchase or sales)
+=============================== */
 router.get("/search", async (req, res) => {
   const q = req.query.q ? req.query.q.trim() : "";
   if (!q) return res.json([]);
@@ -97,15 +107,14 @@ router.get("/search", async (req, res) => {
         name,
         hsn_code,
         pack_size,
-        unit_id,
         (SELECT name FROM units WHERE id = pm.unit_id LIMIT 1) AS unit,
         mrp_price,
         purchase_price,
         sale_price,
         gst_rate
       FROM product_master pm
-      WHERE name LIKE ?
-      ORDER BY name ASC
+      WHERE pm.name LIKE ?
+      ORDER BY pm.name ASC
       LIMIT 50
       `,
       [`%${q}%`]
@@ -118,7 +127,9 @@ router.get("/search", async (req, res) => {
   }
 });
 
-// ================== GET Single ==================
+/* ===============================
+ 🔹 GET SINGLE PRODUCT
+=============================== */
 router.get("/:id", async (req, res) => {
   try {
     const [rows] = await db.query("SELECT * FROM product_master WHERE id = ?", [req.params.id]);
@@ -130,7 +141,9 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// ================== CREATE ==================
+/* ===============================
+ ➕ CREATE NEW PRODUCT
+=============================== */
 router.post("/", async (req, res) => {
   try {
     const {
@@ -147,7 +160,15 @@ router.post("/", async (req, res) => {
       stock,
     } = req.body;
 
-    if (!name || !name.trim()) return res.status(400).json({ error: "Product name required" });
+    if (!name || !name.trim())
+      return res.status(400).json({ error: "Product name required" });
+
+    const [exist] = await db.query(
+      "SELECT id FROM product_master WHERE name = ? LIMIT 1",
+      [name.trim()]
+    );
+    if (exist.length > 0)
+      return res.status(409).json({ error: "Duplicate product name" });
 
     const [result] = await db.query(
       `
@@ -173,14 +194,15 @@ router.post("/", async (req, res) => {
     res.json({ success: true, id: result.insertId });
   } catch (err) {
     console.error("❌ Insert product error:", err);
-    if (err.code === "ER_DUP_ENTRY") {
-      return res.status(409).json({ error: "Duplicate product name" });
-    }
     res.status(500).json({ error: "Database error" });
   }
 });
 
-// ================== UPDATE ==================
+
+
+/* ===============================
+ ✏️ UPDATE PRODUCT
+=============================== */
 router.put("/:id", async (req, res) => {
   try {
     const id = req.params.id;
@@ -208,10 +230,12 @@ router.put("/:id", async (req, res) => {
       }
     }
 
-    if (!fields.length) return res.status(400).json({ error: "Nothing to update" });
+    if (!fields.length)
+      return res.status(400).json({ error: "Nothing to update" });
 
     vals.push(id);
     await db.query(`UPDATE product_master SET ${fields.join(", ")} WHERE id = ?`, vals);
+
     res.json({ success: true });
   } catch (err) {
     console.error("❌ Update product error:", err);
@@ -219,7 +243,9 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-// ================== DELETE ==================
+/* ===============================
+ 🗑 DELETE PRODUCT
+=============================== */
 router.delete("/:id", async (req, res) => {
   try {
     await db.query("DELETE FROM product_master WHERE id = ?", [req.params.id]);
@@ -230,12 +256,16 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-// ================== BULK CSV IMPORT ==================
+/* ===============================
+ 📦 BULK IMPORT (CSV)
+=============================== */
 router.post("/import", upload.single("file"), async (req, res) => {
-  if (!req.file) return res.status(400).json({ error: "No CSV file uploaded" });
-  const filepath = req.file.path;
+  if (!req.file)
+    return res.status(400).json({ error: "No CSV file uploaded" });
 
+  const filepath = req.file.path;
   const rows = [];
+
   try {
     rows.push(
       ...(await new Promise((resolve, reject) => {
@@ -270,11 +300,10 @@ router.post("/import", upload.single("file"), async (req, res) => {
         continue;
       }
 
-      const manId = await getOrCreate(conn, "manufacturers", row["manufacturer"]);
-      const catId = await getOrCreate(conn, "categories", row["category"]);
-      const unitId = await getOrCreate(conn, "units", row["unit"]);
-
-      const [exist] = await conn.query("SELECT id FROM product_master WHERE name = ? LIMIT 1", [name]);
+      const [exist] = await conn.query(
+        "SELECT id FROM product_master WHERE name = ? LIMIT 1",
+        [name]
+      );
       if (exist.length > 0) {
         skipped.push({ row, reason: "Duplicate product" });
         continue;
@@ -284,13 +313,10 @@ router.post("/import", upload.single("file"), async (req, res) => {
         `
         INSERT INTO product_master
         (name, category_id, manufacturer_id, unit_id, pack_size, hsn_code, gst_rate, purchase_price, sale_price, mrp_price, stock)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, NULL, NULL, NULL, ?, ?, ?, ?, ?, ?, ?)
         `,
         [
           name,
-          catId || null,
-          manId || null,
-          unitId || null,
           row["pack_size"] || null,
           row["hsn_code"] || row["hsn"] || null,
           row["gst_rate"] ? Number(row["gst_rate"]) : 0,

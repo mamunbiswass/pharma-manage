@@ -29,12 +29,13 @@ function AddSale() {
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split("T")[0]
-  );
+  );  
 
   const [modalShow, setModalShow] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
   const [toastShow, setToastShow] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
+  
 
   // ✅ Load customers
   useEffect(() => {
@@ -230,12 +231,35 @@ function AddSale() {
             </Col>
             <Col md={4}>
               <Form.Label>📅 Date</Form.Label>
-              <Form.Control
-                type="date"
+              <Form.Select
                 value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-              />
+                onChange={(e) => {
+                  const val = e.target.value;
+                  const today = new Date();
+                  let selected;
+
+                  if (val === "today") selected = today;
+                  else if (val === "yesterday") {
+                    selected = new Date(today);
+                    selected.setDate(today.getDate() - 1);
+                  } else if (val === "2days") {
+                    selected = new Date(today);
+                    selected.setDate(today.getDate() - 2);
+                  } else if (val === "3days") {
+                    selected = new Date(today);
+                    selected.setDate(today.getDate() - 3);
+                  }
+
+                  setSelectedDate(selected.toISOString().split("T")[0]);
+                }}
+              >
+                <option value="today">Today</option>
+                <option value="yesterday">Yesterday</option>
+                <option value="2days">2 Days Ago</option>
+                <option value="3days">3 Days Ago</option>
+              </Form.Select>
             </Col>
+
             <Col md={4}>
               <Form.Label>Bill Type</Form.Label>
               <Form.Select

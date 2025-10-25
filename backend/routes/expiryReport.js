@@ -3,19 +3,24 @@ const router = express.Router();
 const db = require("../db");
 
 /**
- * ✅ Expiry Report
- * Show ONLY products that are still in stock (pi.quantity > 0)
- * and belong to Expired or Near Expiry category.
+ * ✅ Expiry Report (Shop-wise)
+ * Show ONLY products that:
+ *   - belong to current shop_id
+ *   - have stock > 0 (not sold out)
+ *   - and are expired or near expiry (within 30 days)
  */
 router.get("/", async (req, res) => {
   try {
-    const [rows] = await db.query(`
+    const shop_id = req.shop_id || 1; // 🏪 default shop if missing
+
+    const [rows] = await db.query(
+      `
       SELECT 
           p.id AS product_id,
           p.name AS product_name,
           pi.batch_no,
           pi.expiry_date,
-          pi.quantity AS qty,
+          (pi.quantity - pi.sold_qty) AS qty,
           pi.mrp,
           pi.purchase_rate,
           p.hsn_code AS hsn,
@@ -30,17 +35,21 @@ router.get("/", async (req, res) => {
       LEFT JOIN purchase_bills pb ON pi.purchase_bill_id = pb.id
       LEFT JOIN suppliers s ON pb.supplier_id = s.id
       WHERE 
-          pi.expiry_date IS NOT NULL 
+          pi.shop_id = ? 
+          AND p.shop_id = ?
+          AND pi.expiry_date IS NOT NULL 
           AND pi.expiry_date <> ''
-          AND pi.quantity > 0
+          AND (pi.quantity - pi.sold_qty) > 0
           AND (
               pi.expiry_date < CURDATE() 
               OR pi.expiry_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
           )
-      ORDER BY pi.expiry_date ASC;
-    `);
+      ORDER BY pi.expiry_date ASC
+      `,
+      [shop_id, shop_id]
+    );
 
-    // Separate the results
+    // Separate expired and near-expiry products
     const expired = rows.filter((r) => r.expiry_status === "expired");
     const nearExpiry = rows.filter((r) => r.expiry_status === "near");
 

@@ -13,10 +13,9 @@ const storage = multer.diskStorage({
     cb(null, dir);
   },
   filename: (req, file, cb) => {
-    cb(null, "logo_" + Date.now() + path.extname(file.originalname));
+    cb(null, `logo_${Date.now()}${path.extname(file.originalname)}`);
   },
 });
-
 const upload = multer({ storage });
 
 // ===== UPI Validation =====
@@ -26,10 +25,18 @@ function isValidUPI(upi) {
   return regex.test(upi);
 }
 
-// ===== GET Settings =====
+// =============================================================
+// ✅ GET Settings (Shop-wise)
+// =============================================================
 router.get("/", async (req, res) => {
   try {
-    const [rows] = await db.query("SELECT * FROM invoice_settings LIMIT 1");
+    const shop_id = req.shop_id || 1;
+
+    const [rows] = await db.query(
+      "SELECT * FROM invoice_settings WHERE shop_id = ? LIMIT 1",
+      [shop_id]
+    );
+
     res.json(rows[0] || {});
   } catch (err) {
     console.error("❌ Fetch settings error:", err);
@@ -37,26 +44,35 @@ router.get("/", async (req, res) => {
   }
 });
 
-// ===== Upload Logo =====
+// =============================================================
+// ✅ Upload Logo (Shop-wise)
+// =============================================================
 router.post("/upload-logo", upload.single("logo"), async (req, res) => {
   try {
+    const shop_id = req.shop_id || 1;
     if (!req.file) return res.status(400).json({ error: "No file uploaded" });
 
     const filename = req.file.filename;
-    const [rows] = await db.query("SELECT * FROM invoice_settings LIMIT 1");
 
+    const [rows] = await db.query(
+      "SELECT * FROM invoice_settings WHERE shop_id = ? LIMIT 1",
+      [shop_id]
+    );
+
+    // 🔹 Delete old logo if exists
     if (rows.length > 0) {
       const oldLogo = rows[0].logo;
       if (oldLogo && fs.existsSync(`uploads/logo/${oldLogo}`)) {
         fs.unlinkSync(`uploads/logo/${oldLogo}`);
       }
 
-      await db.query("UPDATE invoice_settings SET logo=? WHERE id=?", [
+      await db.query("UPDATE invoice_settings SET logo=? WHERE shop_id=?", [
         filename,
-        rows[0].id,
+        shop_id,
       ]);
     } else {
-      await db.query("INSERT INTO invoice_settings (logo) VALUES (?)", [
+      await db.query("INSERT INTO invoice_settings (shop_id, logo) VALUES (?, ?)", [
+        shop_id,
         filename,
       ]);
     }
@@ -73,8 +89,11 @@ router.post("/upload-logo", upload.single("logo"), async (req, res) => {
   }
 });
 
-// ===== Save Settings =====
+// =============================================================
+// ✅ Save Settings (Shop-wise)
+// =============================================================
 router.put("/", async (req, res) => {
+  const shop_id = req.shop_id || 1;
   const { show_logo, show_qr, upi, footer_note, signature_text } = req.body;
 
   try {
@@ -84,20 +103,42 @@ router.put("/", async (req, res) => {
       });
     }
 
-    const [rows] = await db.query("SELECT * FROM invoice_settings LIMIT 1");
+    const [rows] = await db.query(
+      "SELECT * FROM invoice_settings WHERE shop_id = ? LIMIT 1",
+      [shop_id]
+    );
 
     if (rows.length > 0) {
       await db.query(
-        `UPDATE invoice_settings 
-         SET show_logo=?, show_qr=?, upi=?, footer_note=?, signature_text=? 
-         WHERE id=?`,
-        [show_logo ? 1 : 0, show_qr ? 1 : 0, upi, footer_note, signature_text, rows[0].id]
+        `
+        UPDATE invoice_settings 
+        SET show_logo=?, show_qr=?, upi=?, footer_note=?, signature_text=? 
+        WHERE shop_id=?
+        `,
+        [
+          show_logo ? 1 : 0,
+          show_qr ? 1 : 0,
+          upi,
+          footer_note,
+          signature_text,
+          shop_id,
+        ]
       );
     } else {
       await db.query(
-        `INSERT INTO invoice_settings (show_logo, show_qr, upi, footer_note, signature_text)
-         VALUES (?, ?, ?, ?, ?)`,
-        [show_logo ? 1 : 0, show_qr ? 1 : 0, upi, footer_note, signature_text]
+        `
+        INSERT INTO invoice_settings 
+        (shop_id, show_logo, show_qr, upi, footer_note, signature_text)
+        VALUES (?, ?, ?, ?, ?, ?)
+        `,
+        [
+          shop_id,
+          show_logo ? 1 : 0,
+          show_qr ? 1 : 0,
+          upi,
+          footer_note,
+          signature_text,
+        ]
       );
     }
 
@@ -108,14 +149,22 @@ router.put("/", async (req, res) => {
   }
 });
 
-// ===== Delete Logo =====
+// =============================================================
+// ✅ Delete Logo (Shop-wise)
+// =============================================================
 router.delete("/logo/:filename", async (req, res) => {
   try {
+    const shop_id = req.shop_id || 1;
     const filename = req.params.filename;
     const filepath = `uploads/logo/${filename}`;
+
     if (fs.existsSync(filepath)) fs.unlinkSync(filepath);
 
-    await db.query("UPDATE invoice_settings SET logo=NULL");
+    await db.query(
+      "UPDATE invoice_settings SET logo=NULL WHERE shop_id=?",
+      [shop_id]
+    );
+
     res.json({ success: true, message: "🗑 Logo deleted successfully" });
   } catch (err) {
     console.error("❌ Logo delete error:", err);

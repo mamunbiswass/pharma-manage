@@ -1,6 +1,6 @@
 /**
  * 🚀 Pharmacy Management Server — FINAL STABLE BUILD
- * Version: 3.1.0
+ * Version: 3.1.2 (Multi-Shop + Secure Login)
  */
 
 const express = require("express");
@@ -11,19 +11,22 @@ const path = require("path");
 const app = express();
 
 // ================================================
-// 🧩 MIDDLEWARE SETUP
+// 🧩 GLOBAL MIDDLEWARES
 // ================================================
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-// Static folder for uploaded files
+// Serve uploaded files
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // ================================================
-// 📦 ROUTE IMPORTS
+// 🧩 ROUTE IMPORTS
 // ================================================
 const loginRoute = require("./routes/login");
+const determineShop = require("./middleware/shop");
+const authMiddleware = require("./middleware/authMiddleware");
+
 const productMasterRoutes = require("./routes/productMaster");
 const categoriesRoute = require("./routes/categories");
 const manufacturersRoute = require("./routes/manufacturers");
@@ -44,22 +47,31 @@ const currentStockRoute = require("./routes/currentStock");
 const lowStockRoutes = require("./routes/lowStock");
 const dashboardRoute = require("./routes/dashboard");
 
-// Optional future route (Expiry report)
-let expiryReportRoute;
+// Optional route (Expiry Report)
+let expiryReportRoute = null;
 try {
   expiryReportRoute = require("./routes/expiryReport");
-} catch {
+} catch (err) {
   console.warn("⚠️ Expiry report route not found — skipping.");
 }
 
 // ================================================
-// 🧾 ROUTE REGISTRATION
+// 🔐 AUTHENTICATION ROUTE (Must be FIRST)
+// ================================================
+// Login should come BEFORE auth middleware
+app.use("/api/login", loginRoute);
+
+// ================================================
+// 🏪 SHOP + AUTH MIDDLEWARE (AFTER LOGIN)
+// ================================================
+app.use(determineShop); // detects shop_id from headers/token
+app.use(authMiddleware); // verifies user if logged in
+
+// ================================================
+// 📦 ROUTE REGISTRATION
 // ================================================
 
-// 🔐 Authentication & Admin
-app.use("/api", loginRoute);
-
-// 🏭 Product & Inventory Management
+// 🏭 Product & Inventory
 app.use("/api/product_master", productMasterRoutes);
 app.use("/api/categories", categoriesRoute);
 app.use("/api/manufacturers", manufacturersRoute);
@@ -68,7 +80,7 @@ app.use("/api/stock", stockRoute);
 app.use("/api/current-stock", currentStockRoute);
 app.use("/api/low-stock", lowStockRoutes);
 
-// 🧾 Expiry report (if route exists)
+// 🧾 Expiry report
 if (expiryReportRoute) app.use("/api/reports/expiry", expiryReportRoute);
 
 // 💳 Purchases, Sales & Transactions
@@ -83,14 +95,6 @@ app.use("/api/invoice-settings", invoiceSettingsRoute);
 
 // 📊 Dashboard Analytics
 app.use("/api/dashboard", dashboardRoute);
-
-// 🛍 Retailer Zone (DISABLED)
-// app.use("/api/retailers", retailersRoute);
-// app.use("/api/retailer/products", retailerProductsRoute);
-// app.use("/api/retailer/orders", retailerOrdersRoute);
-
-// 🎁 Promotions (DISABLED)
-// app.use("/api/promo", promoRoute);
 
 // ================================================
 // 🖼 FILE UPLOAD CONFIGURATION (Logo / Images)
@@ -107,7 +111,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB limit
   fileFilter: (req, file, cb) => {
     const allowed = [".png", ".jpg", ".jpeg", ".webp"];
     const ext = path.extname(file.originalname).toLowerCase();
@@ -141,7 +145,6 @@ app.post("/api/upload-logo", (req, res, next) => {
 // ⚠️ 404 HANDLER
 // ================================================
 app.use((req, res) => {
-  // suppress log for disabled retailer routes
   if (!req.originalUrl.includes("/api/admin/retailers")) {
     console.warn("❌ Route not found:", req.originalUrl);
   }

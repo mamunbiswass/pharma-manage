@@ -3,11 +3,13 @@ const router = express.Router();
 const db = require("../db");
 
 /* ======================================
- 📦 1️⃣ FETCH ALL CURRENT STOCK (Product-wise)
+ 📦 1️⃣ FETCH ALL CURRENT STOCK (Product-wise, Shop-wise)
 ====================================== */
 router.get("/", async (req, res) => {
   try {
-    const [rows] = await db.query(`
+    const shop_id = req.shop_id || 1; // 🏪 Default Biswas Medicine
+    const [rows] = await db.query(
+      `
       SELECT 
         pm.id AS medicine_id,
         pm.name AS product_name,
@@ -17,8 +19,11 @@ router.get("/", async (req, res) => {
         pm.mrp_price AS mrp,
         pm.stock AS qty
       FROM product_master pm
+      WHERE pm.shop_id = ?
       ORDER BY pm.name ASC
-    `);
+      `,
+      [shop_id]
+    );
 
     res.json(rows);
   } catch (err) {
@@ -28,10 +33,11 @@ router.get("/", async (req, res) => {
 });
 
 /* ======================================
- 📦 2️⃣ FETCH BATCH LIST FOR SPECIFIC MEDICINE
+ 📦 2️⃣ FETCH BATCH LIST FOR SPECIFIC MEDICINE (Shop-wise)
 ====================================== */
 router.get("/batches/:medicine_id", async (req, res) => {
   const { medicine_id } = req.params;
+  const shop_id = req.shop_id || 1;
 
   try {
     // 🔹 1. Try to fetch from purchase_items table
@@ -49,11 +55,12 @@ router.get("/batches/:medicine_id", async (req, res) => {
       FROM purchase_items pi
       LEFT JOIN product_master pm ON pm.id = pi.medicine_id
       WHERE pi.medicine_id = ? 
+        AND pi.shop_id = ?
         AND (pi.quantity - pi.sold_qty) > 0
         AND (pi.expiry_date IS NULL OR pi.expiry_date >= CURDATE())
       ORDER BY pi.expiry_date ASC
       `,
-      [medicine_id]
+      [medicine_id, shop_id]
     );
 
     // 🔹 2. If batch stock found → return it
@@ -87,9 +94,9 @@ router.get("/batches/:medicine_id", async (req, res) => {
         stock AS available_qty,
         pack_size AS pack
       FROM product_master
-      WHERE id = ? AND stock > 0
+      WHERE id = ? AND shop_id = ? AND stock > 0
       `,
-      [medicine_id]
+      [medicine_id, shop_id]
     );
 
     if (fallback.length > 0) {
@@ -117,9 +124,9 @@ router.get("/batches/:medicine_id", async (req, res) => {
 });
 
 /* ======================================
- 🔄 3️⃣ UPDATE STOCK AFTER SALE
+ 🔄 3️⃣ UPDATE STOCK AFTER SALE (Shop-wise)
 ====================================== */
-async function updateStockAfterSale(conn, items) {
+async function updateStockAfterSale(conn, shop_id, items) {
   try {
     for (const it of items) {
       let remaining = Number(it.quantity);
@@ -129,11 +136,10 @@ async function updateStockAfterSale(conn, items) {
         `
         SELECT id, quantity, sold_qty 
         FROM purchase_items 
-        WHERE medicine_id = ? 
-          AND (quantity - sold_qty) > 0
+        WHERE shop_id = ? AND medicine_id = ? AND (quantity - sold_qty) > 0
         ORDER BY expiry_date ASC
         `,
-        [it.medicine_id]
+        [shop_id, it.medicine_id]
       );
 
       // 🔹 Deduct sold quantity batch-wise
@@ -141,19 +147,26 @@ async function updateStockAfterSale(conn, items) {
         const available = b.quantity - b.sold_qty;
         const useQty = Math.min(available, remaining);
 
-        await conn.query(
-          `UPDATE purchase_items SET sold_qty = sold_qty + ? WHERE id = ?`,
-          [useQty, b.id]
-        );
+        if (useQty > 0) {
+          await conn.query(
+            `UPDATE purchase_items 
+             SET sold_qty = sold_qty + ? 
+             WHERE id = ? AND shop_id = ?`,
+            [useQty, b.id, shop_id]
+          );
 
-        remaining -= useQty;
+          remaining -= useQty;
+        }
+
         if (remaining <= 0) break;
       }
 
-      // 🔹 Fallback: reduce main stock too
+      // 🔹 Fallback: reduce main product stock too
       await conn.query(
-        `UPDATE product_master SET stock = GREATEST(stock - ?, 0) WHERE id = ?`,
-        [it.quantity, it.medicine_id]
+        `UPDATE product_master 
+         SET stock = GREATEST(stock - ?, 0)
+         WHERE id = ? AND shop_id = ?`,
+        [it.quantity, it.medicine_id, shop_id]
       );
     }
   } catch (err) {
@@ -163,18 +176,21 @@ async function updateStockAfterSale(conn, items) {
 }
 
 /* ======================================
- 📊 4️⃣ CHECK AVAILABLE STOCK FOR BATCH
+ 📊 4️⃣ CHECK AVAILABLE STOCK FOR BATCH (Shop-wise)
 ====================================== */
 router.get("/check/:medicine_id/:batch_no", async (req, res) => {
   const { medicine_id, batch_no } = req.params;
+  const shop_id = req.shop_id || 1;
+
   try {
     const [rows] = await db.query(
       `
       SELECT (quantity - sold_qty) AS available 
       FROM purchase_items 
-      WHERE medicine_id = ? AND batch_no = ? LIMIT 1
+      WHERE medicine_id = ? AND shop_id = ? AND batch_no = ? 
+      LIMIT 1
       `,
-      [medicine_id, batch_no]
+      [medicine_id, shop_id, batch_no]
     );
 
     res.json({ available: rows[0]?.available || 0 });
