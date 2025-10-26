@@ -1,24 +1,41 @@
 /**
- * 🚀 Pharmacy Management Server — FINAL STABLE BUILD
- * Version: 3.1.2 (Multi-Shop + Secure Login)
+ * 🚀 Pharmacy Management Server — FINAL STABLE BUILD (v4.1.0)
+ * Compatible: Node.js v22+, Express v5+
+ * Features: Multi-Shop + React Build Serve + Secure Auth + Upload + Offline Ready
  */
 
 const express = require("express");
 const cors = require("cors");
 const multer = require("multer");
 const path = require("path");
+const fs = require("fs");
 
 const app = express();
 
 // ================================================
-// 🧩 GLOBAL MIDDLEWARES
+// 🌍 GLOBAL MIDDLEWARES
 // ================================================
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
+// Ensure uploads folder exists
+const uploadsDir = path.join(__dirname, "uploads");
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
+
 // Serve uploaded files
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use("/uploads", express.static(uploadsDir));
+
+// ================================================
+// 🧭 FRONTEND BUILD SERVE (React Integration)
+// ================================================
+const frontendBuildPath = path.join(__dirname, "../frontend/build");
+if (fs.existsSync(frontendBuildPath)) {
+  app.use(express.static(frontendBuildPath));
+  console.log("📦 React build found and served successfully!");
+} else {
+  console.warn("⚠️ React build folder not found at:", frontendBuildPath);
+}
 
 // ================================================
 // 🧩 ROUTE IMPORTS
@@ -58,20 +75,17 @@ try {
 // ================================================
 // 🔐 AUTHENTICATION ROUTE (Must be FIRST)
 // ================================================
-// Login should come BEFORE auth middleware
 app.use("/api/login", loginRoute);
 
 // ================================================
-// 🏪 SHOP + AUTH MIDDLEWARE (AFTER LOGIN)
+// 🏪 SHOP + AUTH MIDDLEWARE
 // ================================================
-app.use(determineShop); // detects shop_id from headers/token
-app.use(authMiddleware); // verifies user if logged in
+app.use(determineShop);
+app.use(authMiddleware);
 
 // ================================================
 // 📦 ROUTE REGISTRATION
 // ================================================
-
-// 🏭 Product & Inventory
 app.use("/api/product_master", productMasterRoutes);
 app.use("/api/categories", categoriesRoute);
 app.use("/api/manufacturers", manufacturersRoute);
@@ -80,10 +94,8 @@ app.use("/api/stock", stockRoute);
 app.use("/api/current-stock", currentStockRoute);
 app.use("/api/low-stock", lowStockRoutes);
 
-// 🧾 Expiry report
 if (expiryReportRoute) app.use("/api/reports/expiry", expiryReportRoute);
 
-// 💳 Purchases, Sales & Transactions
 app.use("/api/business", businessRoute);
 app.use("/api/purchase-bills", purchaseBillsRoute);
 app.use("/api/returns", returnsRoute);
@@ -92,15 +104,13 @@ app.use("/api/suppliers", suppliersRoute);
 app.use("/api/customers", customersRoute);
 app.use("/api/sales", salesRoute);
 app.use("/api/invoice-settings", invoiceSettingsRoute);
-
-// 📊 Dashboard Analytics
 app.use("/api/dashboard", dashboardRoute);
 
 // ================================================
-// 🖼 FILE UPLOAD CONFIGURATION (Logo / Images)
+// 🖼 FILE UPLOAD (LOGO / IMAGES)
 // ================================================
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, "uploads/"),
+  destination: (req, file, cb) => cb(null, uploadsDir),
   filename: (req, file, cb) => {
     const uniqueName = `${Date.now()}-${Math.round(
       Math.random() * 1e9
@@ -111,7 +121,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB limit
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
   fileFilter: (req, file, cb) => {
     const allowed = [".png", ".jpg", ".jpeg", ".webp"];
     const ext = path.extname(file.originalname).toLowerCase();
@@ -123,7 +133,7 @@ const upload = multer({
 });
 
 // ✅ Upload Route
-app.post("/api/upload-logo", (req, res, next) => {
+app.post("/api/upload-logo", (req, res) => {
   const uploader = upload.single("logo");
   uploader(req, res, (err) => {
     if (err) {
@@ -142,20 +152,31 @@ app.post("/api/upload-logo", (req, res, next) => {
 });
 
 // ================================================
-// ⚠️ 404 HANDLER
+// ⚠️ 404 HANDLER (Fixed for Node v22+)
 // ================================================
-app.use((req, res) => {
-  if (!req.originalUrl.includes("/api/admin/retailers")) {
-    console.warn("❌ Route not found:", req.originalUrl);
+app.use((req, res, next) => {
+  if (req.originalUrl.startsWith("/api")) {
+    console.warn("❌ API Route not found:", req.originalUrl);
+    return res.status(404).json({ error: "API endpoint not found" });
   }
-  res.status(404).json({ error: "API endpoint not found" });
+  next();
 });
 
+// ================================================
+// ⚛️ REACT SPA FALLBACK ROUTE (Updated)
+// ================================================
+app.get(/.*/, (req, res) => {
+  if (fs.existsSync(frontendBuildPath)) {
+    res.sendFile(path.join(frontendBuildPath, "index.html"));
+  } else {
+    res.status(404).send("Frontend build not found!");
+  }
+});
 // ================================================
 // 🚀 START SERVER
 // ================================================
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log("=====================================");
   console.log(`✅ Pharmacy Server running on port: ${PORT}`);
   console.log(`🌐 Base URL: http://localhost:${PORT}/api`);

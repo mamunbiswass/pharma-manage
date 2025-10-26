@@ -1,17 +1,20 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "http://localhost:5000/api",
+  baseURL: "https://pharma-backend-3m0i.onrender.com/api",
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
-// ✅ Interceptor — Automatically add shop_id
+// ✅ Auto attach shop_id & token (if needed)
 API.interceptors.request.use((config) => {
   const user = JSON.parse(localStorage.getItem("user"));
   if (user?.shop_id) {
     config.headers["x-shop-id"] = user.shop_id;
-    console.log("➡️ Sending", config.url, "with shop_id:", user.shop_id);
   } else {
-    console.warn("⚠️ No shop_id found in localStorage!");
+    // fallback for now (for testing)
+    config.headers["x-shop-id"] = 1;
   }
   return config;
 });

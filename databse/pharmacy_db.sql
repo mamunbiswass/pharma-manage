@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Oct 25, 2025 at 10:16 AM
+-- Generation Time: Oct 26, 2025 at 04:53 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -44,8 +44,8 @@ CREATE TABLE `business_info` (
 --
 
 INSERT INTO `business_info` (`id`, `shop_id`, `name`, `address`, `phone`, `email`, `tax_number`, `created_at`, `updated_at`) VALUES
-(6, 1, 'Mamun Biswas', 'Dhanaipur,Madanpur,Daulatabad,Murshidabad', '09681265732', 'nillakash24@gmail.com', 'WB/MSD/BIO-NBIO/W/702643', '2025-10-24 16:19:35', '2025-10-24 16:19:35'),
-(7, 2, 'Mamun Pharma', 'Dhanaipur Bakultola, Msd', '9733112066', 'arifin122554@gmail.com', 'WB/MSD/BIO-NBIO/W/702643', '2025-10-24 16:53:23', '2025-10-24 16:53:23');
+(6, 1, 'Biswas Medicine', 'Madanpur,Daulatabad,Murshidabad', '9153601182', 'biswasallarakha350@gmail.com', 'WB/MSD/BIO-NBIO/W/702643', '2025-10-24 16:19:35', '2025-10-25 13:48:00'),
+(7, 2, 'Mamun Pharma', 'Dhanaipur Bakultola, Msd', '8250156835', 'mamunbiswass@gmail.com', 'WB/MSD/BIO-NBIO/W/702643', '2025-10-24 16:53:23', '2025-10-25 13:51:02');
 
 -- --------------------------------------------------------
 
@@ -126,7 +126,7 @@ CREATE TABLE `invoice_settings` (
 
 INSERT INTO `invoice_settings` (`id`, `shop_id`, `show_logo`, `show_qr`, `upi`, `footer_note`, `signature_text`, `logo`, `created_at`) VALUES
 (1, NULL, 0, 1, '7003633738@ybl', 'Thank you for your purchase!', 'For Biswas Medicine', 'logo_1760369004235.jpg', '2025-10-09 15:06:49'),
-(4, 1, 0, 0, '309292640421800@cnrb', 'sdfsdfsdf', 'sdfsdfsdf', 'logo_1761322795300.jpg', '2025-10-24 16:19:55'),
+(4, 1, 0, 1, '309292640421800@cnrb', 'Thank you', 'For Biswas Medicine', 'logo_1761322795300.jpg', '2025-10-24 16:19:55'),
 (5, 2, 0, 1, '309292640421800@cnrb', 'Thank you', 'For Biswas Medicine', 'logo_1761324764461.png', '2025-10-24 16:52:42');
 
 -- --------------------------------------------------------
@@ -8211,7 +8211,8 @@ INSERT INTO `purchase_bills` (`id`, `shop_id`, `supplier_id`, `invoice_no`, `inv
 (55, 2, 43, '252525', '2025-10-24', 'Cash', 'Paid', 'Cash', 247.60, 0.00, 247.60, 0.00, '2025-10-24 16:54:33'),
 (56, 2, 40, '2542452542', '2025-10-24', 'Cash', 'Paid', 'Cash', 107.87, 0.00, 107.87, 0.00, '2025-10-24 17:25:57'),
 (57, 2, 44, '123456', '2025-10-24', 'Cash', 'Paid', 'Cash', 1796.16, 0.00, 1796.16, 0.00, '2025-10-24 17:29:37'),
-(58, 2, 40, '441414141', '2025-10-24', 'Cash', 'Paid', 'Cash', 1238.00, 0.00, 1238.00, 0.00, '2025-10-24 17:33:42');
+(58, 2, 40, '441414141', '2025-10-24', 'Cash', 'Paid', 'Cash', 1238.00, 0.00, 1238.00, 0.00, '2025-10-24 17:33:42'),
+(59, 1, 46, '52245245', '2025-10-26', 'Cash', 'Paid', 'Cash', 1238.00, 0.00, 1238.00, 0.00, '2025-10-26 07:12:41');
 
 -- --------------------------------------------------------
 
@@ -8288,7 +8289,8 @@ INSERT INTO `purchase_items` (`id`, `shop_id`, `purchase_bill_id`, `medicine_id`
 (43, 2, 55, 12603, 'ALPRAX 0.25 10 TAB', '3004', '454545', '2027-05-01', 10, 0.00, 0, 'Box', 25.01, 35.00, 5.00, 6.00, 247.60),
 (44, 2, 56, 8623, 'CALPOL 500MG 15TAB', '29309040', '4454545', '2026-05-01', 10, 0.00, 0, 'Strip', 10.68, 14.95, 5.00, 4.00, 107.87),
 (45, 2, 57, 6670, 'PAN D CAP 10S', '3004', '236541', '2027-04-01', 10, 0.00, 0, 'Strip', 181.43, 254.00, 5.00, 6.00, 1796.16),
-(46, 2, 58, 12603, 'ALPRAX 0.25 10 TAB', '3004', '236454', '2026-05-01', 50, 0.00, 0, 'Strip', 25.01, 35.00, 5.00, 6.00, 1238.00);
+(46, 2, 58, 12603, 'ALPRAX 0.25 10 TAB', '3004', '236454', '2026-05-01', 50, 0.00, 0, 'Strip', 25.01, 35.00, 5.00, 6.00, 1238.00),
+(47, 1, 59, 12603, 'ALPRAX 0.25 10 TAB', '3004', '1212121', '2026-04-01', 50, 0.00, 0, 'Capsule', 25.01, 35.00, 5.00, 6.00, 1238.00);
 
 -- --------------------------------------------------------
 
@@ -8537,7 +8539,8 @@ CREATE TABLE `shop_products` (
 
 INSERT INTO `shop_products` (`id`, `shop_id`, `product_id`, `stock`, `purchase_rate`, `sale_rate`, `mrp`, `last_updated`) VALUES
 (1, 2, 6670, 5.00, 181.43, 0.00, 254.00, '2025-10-24 17:31:47'),
-(2, 2, 12603, 50.00, 25.01, 0.00, 35.00, '2025-10-24 17:33:42');
+(2, 2, 12603, 50.00, 25.01, 0.00, 35.00, '2025-10-24 17:33:42'),
+(3, 1, 12603, 50.00, 25.01, 0.00, 35.00, '2025-10-26 07:12:41');
 
 -- --------------------------------------------------------
 
@@ -8571,7 +8574,8 @@ INSERT INTO `suppliers` (`id`, `shop_id`, `name`, `contact`, `email`, `address`,
 (40, NULL, 'Owaj Khan', NULL, 'mamunbiswass@gmail.com', 'VILL- DHANAIPUR, P.O- MADANPUR, P.S- DAULATABAD, DIST MURSHIDABAD', '2025-09-22 05:30:27', '9865326511', 'asdasdas45456645', 'KLH2536545253'),
 (42, NULL, 'Mamun Biswas', NULL, 'nillakash24@gmail.com', 'Mamun House', '2025-09-22 15:15:09', '9681265732', '', ''),
 (43, NULL, 'Mamun Biswas', NULL, 'nillakash24@gmail.com', 'Mamun House', '2025-09-22 15:15:25', '9681265732', '', ''),
-(44, NULL, 'SASTASUNDAR HEALTHBUDDY LTD', NULL, 'arifin122554@gmail.com', 'SALEPUR, SOUTH 24 PGS, WEST BENGAL', '2025-09-27 13:41:30', '6292002002', '19AAHCM0651P1Z0', '');
+(44, NULL, 'SASTASUNDAR HEALTHBUDDY LTD', NULL, 'arifin122554@gmail.com', 'SALEPUR, SOUTH 24 PGS, WEST BENGAL', '2025-09-27 13:41:30', '6292002002', '19AAHCM0651P1Z0', ''),
+(46, 1, 'MD MAHMUDUL HASAN', NULL, 'arifin122554@gmail.com', 'RHARPARA MADANPR MURSHIDABAD', '2025-10-26 07:11:47', '9733112066', '19AAHCM0651P1Z0', 'LMK3256321142');
 
 -- --------------------------------------------------------
 
@@ -8621,8 +8625,8 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `name`, `email`, `password`, `shop_id`) VALUES
-(1, 'Admin', 'admin@gmail.com', '123456', 1),
-(2, 'Mamun', 'mamun@pharma.com', '1234', 2);
+(1, 'Allarakha Biswas', 'biswasallarakha350@gmail.com', '123456', 1),
+(2, 'Mamun', 'mamunbiswass@gmail.com', '123456', 2);
 
 --
 -- Indexes for dumped tables
@@ -8783,7 +8787,7 @@ ALTER TABLE `categories`
 -- AUTO_INCREMENT for table `customers`
 --
 ALTER TABLE `customers`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `invoice_settings`
@@ -8807,13 +8811,13 @@ ALTER TABLE `product_master`
 -- AUTO_INCREMENT for table `purchase_bills`
 --
 ALTER TABLE `purchase_bills`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=59;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=60;
 
 --
 -- AUTO_INCREMENT for table `purchase_items`
 --
 ALTER TABLE `purchase_items`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=47;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=48;
 
 --
 -- AUTO_INCREMENT for table `returns`
@@ -8849,13 +8853,13 @@ ALTER TABLE `shops`
 -- AUTO_INCREMENT for table `shop_products`
 --
 ALTER TABLE `shop_products`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `suppliers`
 --
 ALTER TABLE `suppliers`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=45;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=47;
 
 --
 -- AUTO_INCREMENT for table `units`
