@@ -253,12 +253,7 @@ function AppLayout() {
                   <NavLink className="nav-link ms-4" to="/customer-list">
                     Customer List
                   </NavLink>
-                </li>
-                <li>
-                  <NavLink className="nav-link ms-4" to="/add-customer">
-                    Add Customer
-                  </NavLink>
-                </li>
+                </li>               
               </ul>
             )}
           </li>
